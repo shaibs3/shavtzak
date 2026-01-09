@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Shift } from './entities/shift.entity';
 import { ShiftAssignment } from './entities/shift-assignment.entity';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
+import { ValidationService } from '../validation/validation.service';
+import { ViolationSeverity } from '../validation/interfaces/constraint-violation.interface';
 
 @Injectable()
 export class ShiftsService {
@@ -13,10 +15,34 @@ export class ShiftsService {
     private shiftsRepository: Repository<Shift>,
     @InjectRepository(ShiftAssignment)
     private assignmentsRepository: Repository<ShiftAssignment>,
+    private validationService: ValidationService,
   ) {}
 
   async create(createShiftDto: CreateShiftDto): Promise<Shift> {
     const { assignments, ...shiftData } = createShiftDto;
+
+    // Validate shift before creating
+    const validationResult = await this.validationService.validateShift({
+      taskId: createShiftDto.taskId,
+      startTime: new Date(createShiftDto.startTime),
+      endTime: new Date(createShiftDto.endTime),
+      assignments: assignments || [],
+    });
+
+    // Check for errors (warnings are allowed)
+    const errors = validationResult.violations.filter(
+      v => v.severity === ViolationSeverity.ERROR
+    );
+
+    if (errors.length > 0) {
+      throw new BadRequestException({
+        message: 'Shift validation failed',
+        errors: errors.map(e => e.message),
+        warnings: validationResult.violations
+          .filter(v => v.severity === ViolationSeverity.WARNING)
+          .map(w => w.message),
+      });
+    }
 
     // Create shift
     const shift = this.shiftsRepository.create(shiftData);
@@ -33,7 +59,17 @@ export class ShiftsService {
       await this.assignmentsRepository.save(shiftAssignments);
     }
 
-    return this.findOne(savedShift.id);
+    // Return shift with warnings if any
+    const result = await this.findOne(savedShift.id);
+
+    const warnings = validationResult.violations.filter(
+      v => v.severity === ViolationSeverity.WARNING
+    );
+
+    return {
+      ...result,
+      ...(warnings.length > 0 && { warnings: warnings.map(w => w.message) }),
+    } as any;
   }
 
   async findAll(): Promise<Shift[]> {
@@ -71,6 +107,38 @@ export class ShiftsService {
     const shift = await this.findOne(id);
     const { assignments, ...shiftData } = updateShiftDto;
 
+    // Prepare data for validation (use updated values or existing values)
+    const updatedAssignments = assignments !== undefined
+      ? assignments
+      : shift.assignments.map(a => ({
+          soldierId: a.soldierId,
+          role: a.role
+        }));
+
+    // Validate shift before updating
+    const validationResult = await this.validationService.validateShift({
+      taskId: updateShiftDto.taskId ?? shift.taskId,
+      startTime: updateShiftDto.startTime ? new Date(updateShiftDto.startTime) : shift.startTime,
+      endTime: updateShiftDto.endTime ? new Date(updateShiftDto.endTime) : shift.endTime,
+      assignments: updatedAssignments,
+      shiftId: id, // Include shiftId to exclude current shift from overlap checks
+    });
+
+    // Check for errors (warnings are allowed)
+    const errors = validationResult.violations.filter(
+      v => v.severity === ViolationSeverity.ERROR
+    );
+
+    if (errors.length > 0) {
+      throw new BadRequestException({
+        message: 'Shift validation failed',
+        errors: errors.map(e => e.message),
+        warnings: validationResult.violations
+          .filter(v => v.severity === ViolationSeverity.WARNING)
+          .map(w => w.message),
+      });
+    }
+
     // Update shift data
     Object.assign(shift, shiftData);
     await this.shiftsRepository.save(shift);
@@ -92,7 +160,17 @@ export class ShiftsService {
       }
     }
 
-    return this.findOne(id);
+    // Return shift with warnings if any
+    const result = await this.findOne(id);
+
+    const warnings = validationResult.violations.filter(
+      v => v.severity === ViolationSeverity.WARNING
+    );
+
+    return {
+      ...result,
+      ...(warnings.length > 0 && { warnings: warnings.map(w => w.message) }),
+    } as any;
   }
 
   async remove(id: string): Promise<void> {
