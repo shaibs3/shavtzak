@@ -3,6 +3,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { SoldiersModule } from './soldiers/soldiers.module';
+import { TasksModule } from './tasks/tasks.module';
+import { ShiftsModule } from './shifts/shifts.module';
+import { LeaveModule } from './leave/leave.module';
+import { DeploymentModule } from './deployment/deployment.module';
 
 @Module({
   imports: [
@@ -26,6 +30,10 @@ import { SoldiersModule } from './soldiers/soldiers.module';
     }),
     UsersModule,
     SoldiersModule,
+    TasksModule,
+    ShiftsModule,
+    LeaveModule,
+    DeploymentModule,
   ],
 })
 export class AppModule {}
