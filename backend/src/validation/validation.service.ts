@@ -270,7 +270,70 @@ export class ValidationService {
   }
 
   private async validateMinimumPresence(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
-    return [];
+    const violations: ConstraintViolation[] = [];
+
+    // Get active deployment
+    const activeDeployments = await this.deploymentRepository.find({
+      where: { isActive: true },
+    });
+
+    if (activeDeployments.length === 0) {
+      return violations; // No active deployment, skip check
+    }
+
+    const deployment = activeDeployments[0];
+    const requiredCount = Math.ceil(
+      (deployment.totalManpower * deployment.minimumPresencePercentage) / 100
+    );
+
+    // Count unique soldiers on duty during this shift
+    const soldiersOnDuty = new Set<string>();
+
+    // Add soldiers from the new shift
+    for (const assignment of input.assignments) {
+      soldiersOnDuty.add(assignment.soldierId);
+    }
+
+    // Find overlapping shifts to count soldiers already on duty
+    const overlappingShifts = await this.shiftsRepository
+      .createQueryBuilder('shift')
+      .leftJoinAndSelect('shift.assignments', 'assignments')
+      .where('shift.startTime < :endTime', { endTime: input.endTime })
+      .andWhere('shift.endTime > :startTime', { startTime: input.startTime })
+      .getMany();
+
+    // Exclude current shift if updating
+    const shiftsToCheck = input.shiftId
+      ? overlappingShifts.filter(s => s.id !== input.shiftId)
+      : overlappingShifts;
+
+    // Add soldiers from overlapping shifts
+    for (const shift of shiftsToCheck) {
+      if (shift.assignments) {
+        for (const assignment of shift.assignments) {
+          soldiersOnDuty.add(assignment.soldierId);
+        }
+      }
+    }
+
+    const actualCount = soldiersOnDuty.size;
+    const actualPercentage = (actualCount / deployment.totalManpower) * 100;
+
+    if (actualCount < requiredCount) {
+      violations.push({
+        severity: ViolationSeverity.WARNING,
+        message: `Minimum presence not met: ${actualCount}/${deployment.totalManpower} soldiers on duty (${actualPercentage.toFixed(1)}%), requires ${deployment.minimumPresencePercentage}% (${requiredCount} soldiers)`,
+        field: 'assignments',
+        details: {
+          requiredCount,
+          actualCount,
+          requiredPercentage: deployment.minimumPresencePercentage,
+          actualPercentage,
+        },
+      });
+    }
+
+    return violations;
   }
 
   private async validateVacationQuota(input: ShiftValidationInput): Promise<ConstraintViolation[]> {

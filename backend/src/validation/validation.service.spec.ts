@@ -380,3 +380,124 @@ describe('ValidationService - Overlap Detection', () => {
     expect(overlapViolations).toHaveLength(0);
   });
 });
+
+describe('ValidationService - Minimum Presence', () => {
+  let service: ValidationService;
+  let soldiersRepository: Repository<Soldier>;
+  let shiftsRepository: Repository<Shift>;
+  let assignmentsRepository: Repository<ShiftAssignment>;
+  let leaveRepository: Repository<LeaveRecord>;
+  let deploymentRepository: Repository<Deployment>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ValidationService,
+        { provide: getRepositoryToken(Soldier), useClass: Repository },
+        { provide: getRepositoryToken(Shift), useClass: Repository },
+        { provide: getRepositoryToken(ShiftAssignment), useClass: Repository },
+        { provide: getRepositoryToken(LeaveRecord), useClass: Repository },
+        { provide: getRepositoryToken(Deployment), useClass: Repository },
+        { provide: getRepositoryToken(Task), useClass: Repository },
+      ],
+    }).compile();
+
+    service = module.get<ValidationService>(ValidationService);
+    soldiersRepository = module.get<Repository<Soldier>>(getRepositoryToken(Soldier));
+    shiftsRepository = module.get<Repository<Shift>>(getRepositoryToken(Shift));
+    assignmentsRepository = module.get<Repository<ShiftAssignment>>(getRepositoryToken(ShiftAssignment));
+    leaveRepository = module.get<Repository<LeaveRecord>>(getRepositoryToken(LeaveRecord));
+    deploymentRepository = module.get<Repository<Deployment>>(getRepositoryToken(Deployment));
+  });
+
+  it('should reject shift when minimum presence is not met', async () => {
+    const deployment = {
+      totalManpower: 10,
+      minimumPresencePercentage: 50, // Requires 5 soldiers
+      isActive: true,
+      startDate: new Date('2026-01-01'),
+      endDate: new Date('2026-02-01'),
+    } as Deployment;
+
+    const soldiers = [
+      { id: '1', name: 'Soldier 1', isCommander: true } as Soldier,
+      { id: '2', name: 'Soldier 2', isDriver: true } as Soldier,
+    ];
+
+    // Mock: only 2 soldiers on this new shift
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([deployment]);
+    jest.spyOn(soldiersRepository, 'findOne')
+      .mockResolvedValueOnce(soldiers[0])
+      .mockResolvedValueOnce(soldiers[1]);
+    jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]), // No overlapping shifts
+    } as any);
+
+    const input: ShiftValidationInput = {
+      taskId: 'task1',
+      startTime: new Date('2026-01-10T08:00:00Z'),
+      endTime: new Date('2026-01-10T16:00:00Z'),
+      assignments: [
+        { soldierId: '1', role: AssignmentRole.COMMANDER },
+        { soldierId: '2', role: AssignmentRole.DRIVER },
+      ],
+    };
+
+    const result = await service.validateShift(input);
+
+    const presenceViolations = result.violations.filter(v =>
+      v.message.includes('presence') || v.message.includes('manpower')
+    );
+    expect(presenceViolations.length).toBeGreaterThan(0);
+    expect(presenceViolations[0].severity).toBe(ViolationSeverity.WARNING);
+  });
+
+  it('should accept shift when minimum presence is met', async () => {
+    const deployment = {
+      totalManpower: 10,
+      minimumPresencePercentage: 50, // Requires 5 soldiers
+      isActive: true,
+      startDate: new Date('2026-01-01'),
+      endDate: new Date('2026-02-01'),
+    } as Deployment;
+
+    const soldiers = Array.from({ length: 5 }, (_, i) => ({
+      id: `${i + 1}`,
+      name: `Soldier ${i + 1}`,
+      isCommander: i === 0,
+    } as Soldier));
+
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([deployment]);
+    soldiers.forEach((soldier) => {
+      jest.spyOn(soldiersRepository, 'findOne').mockResolvedValueOnce(soldier);
+    });
+    jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    } as any);
+
+    const input: ShiftValidationInput = {
+      taskId: 'task1',
+      startTime: new Date('2026-01-10T08:00:00Z'),
+      endTime: new Date('2026-01-10T16:00:00Z'),
+      assignments: soldiers.map((s, i) => ({
+        soldierId: s.id,
+        role: i === 0 ? AssignmentRole.COMMANDER : AssignmentRole.GENERAL,
+      })),
+    };
+
+    const result = await service.validateShift(input);
+
+    const presenceViolations = result.violations.filter(v =>
+      v.message.includes('presence') || v.message.includes('manpower')
+    );
+    expect(presenceViolations).toHaveLength(0);
+  });
+});
