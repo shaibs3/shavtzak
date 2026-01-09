@@ -1,0 +1,181 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between } from 'typeorm';
+import { Soldier } from '../soldiers/entities/soldier.entity';
+import { Shift } from '../shifts/entities/shift.entity';
+import { ShiftAssignment, AssignmentRole } from '../shifts/entities/shift-assignment.entity';
+import { LeaveRecord } from '../leave/entities/leave-record.entity';
+import { Deployment } from '../deployment/entities/deployment.entity';
+import { Task } from '../tasks/entities/task.entity';
+import { ValidationResult } from './interfaces/validation-result.interface';
+import { ConstraintViolation, ViolationSeverity } from './interfaces/constraint-violation.interface';
+
+export interface ShiftAssignmentInput {
+  soldierId: string;
+  role: AssignmentRole;
+}
+
+export interface ShiftValidationInput {
+  taskId: string;
+  startTime: Date;
+  endTime: Date;
+  assignments: ShiftAssignmentInput[];
+  shiftId?: string; // For updates
+}
+
+@Injectable()
+export class ValidationService {
+  constructor(
+    @InjectRepository(Soldier)
+    private soldiersRepository: Repository<Soldier>,
+    @InjectRepository(Shift)
+    private shiftsRepository: Repository<Shift>,
+    @InjectRepository(ShiftAssignment)
+    private assignmentsRepository: Repository<ShiftAssignment>,
+    @InjectRepository(LeaveRecord)
+    private leaveRepository: Repository<LeaveRecord>,
+    @InjectRepository(Deployment)
+    private deploymentRepository: Repository<Deployment>,
+    @InjectRepository(Task)
+    private tasksRepository: Repository<Task>,
+  ) {}
+
+  async validateShift(input: ShiftValidationInput): Promise<ValidationResult> {
+    const violations: ConstraintViolation[] = [];
+
+    // Run all constraint validations
+    const qualificationViolations = await this.validateQualifications(input);
+    const leaveViolations = await this.validateLeaveConflicts(input);
+    const restViolations = await this.validateRestPeriods(input);
+    const overlapViolations = await this.validateNoOverlaps(input);
+    const presenceViolations = await this.validateMinimumPresence(input);
+    const quotaViolations = await this.validateVacationQuota(input);
+    const taskRequirements = await this.validateTaskRequirements(input);
+
+    violations.push(
+      ...qualificationViolations,
+      ...leaveViolations,
+      ...restViolations,
+      ...overlapViolations,
+      ...presenceViolations,
+      ...quotaViolations,
+      ...taskRequirements,
+    );
+
+    const hasErrors = violations.some(v => v.severity === ViolationSeverity.ERROR);
+
+    return {
+      isValid: !hasErrors,
+      violations,
+    };
+  }
+
+  // Placeholder methods - will be implemented next
+  private async validateQualifications(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
+    const violations: ConstraintViolation[] = [];
+
+    for (const assignment of input.assignments) {
+      const soldier = await this.soldiersRepository.findOne({
+        where: { id: assignment.soldierId },
+      });
+
+      if (!soldier) {
+        violations.push({
+          severity: ViolationSeverity.ERROR,
+          message: `Soldier with ID ${assignment.soldierId} not found`,
+          field: 'soldierId',
+        });
+        continue;
+      }
+
+      let isQualified = true;
+      let roleLabel = '';
+
+      switch (assignment.role) {
+        case AssignmentRole.COMMANDER:
+          isQualified = soldier.isCommander;
+          roleLabel = 'commander';
+          break;
+        case AssignmentRole.DRIVER:
+          isQualified = soldier.isDriver;
+          roleLabel = 'driver';
+          break;
+        case AssignmentRole.SPECIALIST:
+          isQualified = soldier.isSpecialist;
+          roleLabel = 'specialist';
+          break;
+        case AssignmentRole.GENERAL:
+          isQualified = true; // All soldiers can be general soldiers
+          break;
+      }
+
+      if (!isQualified) {
+        violations.push({
+          severity: ViolationSeverity.ERROR,
+          message: `${soldier.name} is not qualified as ${roleLabel}`,
+          field: 'assignments',
+          details: { soldierId: soldier.id, role: assignment.role },
+        });
+      }
+    }
+
+    return violations;
+  }
+
+  private async validateLeaveConflicts(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
+    const violations: ConstraintViolation[] = [];
+
+    for (const assignment of input.assignments) {
+      // Get all leave records for this soldier
+      const leaveRecords = await this.leaveRepository.find({
+        where: { soldierId: assignment.soldierId },
+        relations: ['soldier'],
+      });
+
+      // Check if shift overlaps with any leave period
+      for (const leave of leaveRecords) {
+        const shiftStart = new Date(input.startTime);
+        const shiftEnd = new Date(input.endTime);
+        const leaveStart = new Date(leave.startDate);
+        const leaveEnd = new Date(leave.endDate);
+
+        // Set time to start/end of day for proper date comparison
+        leaveStart.setHours(0, 0, 0, 0);
+        leaveEnd.setHours(23, 59, 59, 999);
+
+        const overlaps = shiftStart <= leaveEnd && shiftEnd >= leaveStart;
+
+        if (overlaps) {
+          violations.push({
+            severity: ViolationSeverity.ERROR,
+            message: `${leave.soldier.name} is on leave from ${leave.startDate.toISOString().split('T')[0]} to ${leave.endDate.toISOString().split('T')[0]}`,
+            field: 'assignments',
+            details: { soldierId: assignment.soldierId, leaveId: leave.id },
+          });
+        }
+      }
+    }
+
+    return violations;
+  }
+
+  private async validateRestPeriods(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
+    return [];
+  }
+
+  private async validateNoOverlaps(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
+    return [];
+  }
+
+  private async validateMinimumPresence(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
+    return [];
+  }
+
+  private async validateVacationQuota(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
+    return [];
+  }
+
+  private async validateTaskRequirements(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
+    return [];
+  }
+}

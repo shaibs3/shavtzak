@@ -7,6 +7,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { ShiftsModule } from './shifts/shifts.module';
 import { LeaveModule } from './leave/leave.module';
 import { DeploymentModule } from './deployment/deployment.module';
+import { ValidationModule } from './validation/validation.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { DeploymentModule } from './deployment/deployment.module';
     ShiftsModule,
     LeaveModule,
     DeploymentModule,
+    ValidationModule,
   ],
 })
 export class AppModule {}
