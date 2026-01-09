@@ -367,6 +367,100 @@ export class ValidationService {
   }
 
   private async validateTaskRequirements(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
-    return [];
+    const violations: ConstraintViolation[] = [];
+
+    // Get the task
+    const task = await this.tasksRepository.findOne({
+      where: { id: input.taskId },
+    });
+
+    if (!task) {
+      violations.push({
+        severity: ViolationSeverity.ERROR,
+        message: `Task with ID ${input.taskId} not found`,
+        field: 'taskId',
+      });
+      return violations;
+    }
+
+    // Count assignments by role
+    const roleCounts = {
+      commander: 0,
+      driver: 0,
+      specialist: 0,
+      general: 0,
+    };
+
+    for (const assignment of input.assignments) {
+      switch (assignment.role) {
+        case AssignmentRole.COMMANDER:
+          roleCounts.commander++;
+          break;
+        case AssignmentRole.DRIVER:
+          roleCounts.driver++;
+          break;
+        case AssignmentRole.SPECIALIST:
+          roleCounts.specialist++;
+          break;
+        case AssignmentRole.GENERAL:
+          roleCounts.general++;
+          break;
+      }
+    }
+
+    // Check each requirement
+    if (roleCounts.commander < task.commandersNeeded) {
+      violations.push({
+        severity: ViolationSeverity.ERROR,
+        message: `Task requires ${task.commandersNeeded} commander(s), but only ${roleCounts.commander} assigned`,
+        field: 'assignments',
+        details: {
+          required: task.commandersNeeded,
+          actual: roleCounts.commander,
+          role: 'commander',
+        },
+      });
+    }
+
+    if (roleCounts.driver < task.driversNeeded) {
+      violations.push({
+        severity: ViolationSeverity.ERROR,
+        message: `Task requires ${task.driversNeeded} driver(s), but only ${roleCounts.driver} assigned`,
+        field: 'assignments',
+        details: {
+          required: task.driversNeeded,
+          actual: roleCounts.driver,
+          role: 'driver',
+        },
+      });
+    }
+
+    if (roleCounts.specialist < task.specialistsNeeded) {
+      violations.push({
+        severity: ViolationSeverity.ERROR,
+        message: `Task requires ${task.specialistsNeeded} specialist(s), but only ${roleCounts.specialist} assigned`,
+        field: 'assignments',
+        details: {
+          required: task.specialistsNeeded,
+          actual: roleCounts.specialist,
+          role: 'specialist',
+        },
+      });
+    }
+
+    if (roleCounts.general < task.generalSoldiersNeeded) {
+      violations.push({
+        severity: ViolationSeverity.ERROR,
+        message: `Task requires ${task.generalSoldiersNeeded} general soldier(s), but only ${roleCounts.general} assigned`,
+        field: 'assignments',
+        details: {
+          required: task.generalSoldiersNeeded,
+          actual: roleCounts.general,
+          role: 'general',
+        },
+      });
+    }
+
+    return violations;
   }
 }
