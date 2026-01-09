@@ -227,7 +227,46 @@ export class ValidationService {
   }
 
   private async validateNoOverlaps(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
-    return [];
+    const violations: ConstraintViolation[] = [];
+
+    for (const assignment of input.assignments) {
+      // Find all shifts for this soldier that overlap with the new shift time
+      const overlappingShifts = await this.shiftsRepository
+        .createQueryBuilder('shift')
+        .leftJoinAndSelect('shift.assignments', 'assignments')
+        .where('assignments.soldierId = :soldierId', { soldierId: assignment.soldierId })
+        .andWhere('shift.startTime < :newShiftEnd', { newShiftEnd: input.endTime })
+        .andWhere('shift.endTime > :newShiftStart', { newShiftStart: input.startTime })
+        .getMany();
+
+      // Exclude current shift if updating
+      const shiftsToCheck = input.shiftId
+        ? overlappingShifts.filter(s => s.id !== input.shiftId)
+        : overlappingShifts;
+
+      for (const overlappingShift of shiftsToCheck) {
+        // Get soldier info
+        const soldier = await this.soldiersRepository.findOne({
+          where: { id: assignment.soldierId },
+        });
+
+        const soldierName = soldier?.name || 'Soldier';
+
+        violations.push({
+          severity: ViolationSeverity.ERROR,
+          message: `${soldierName} is already assigned to another shift from ${new Date(overlappingShift.startTime).toISOString()} to ${new Date(overlappingShift.endTime).toISOString()}`,
+          field: 'assignments',
+          details: {
+            soldierId: assignment.soldierId,
+            conflictingShiftId: overlappingShift.id,
+            conflictingShiftStart: overlappingShift.startTime,
+            conflictingShiftEnd: overlappingShift.endTime,
+          },
+        });
+      }
+    }
+
+    return violations;
   }
 
   private async validateMinimumPresence(input: ShiftValidationInput): Promise<ConstraintViolation[]> {

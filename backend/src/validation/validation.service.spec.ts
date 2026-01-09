@@ -13,6 +13,7 @@ import { ViolationSeverity } from './interfaces/constraint-violation.interface';
 describe('ValidationService - Qualifications', () => {
   let service: ValidationService;
   let soldiersRepository: Repository<Soldier>;
+  let shiftsRepository: Repository<Shift>;
   let leaveRepository: Repository<LeaveRecord>;
   let deploymentRepository: Repository<Deployment>;
 
@@ -31,6 +32,7 @@ describe('ValidationService - Qualifications', () => {
 
     service = module.get<ValidationService>(ValidationService);
     soldiersRepository = module.get<Repository<Soldier>>(getRepositoryToken(Soldier));
+    shiftsRepository = module.get<Repository<Shift>>(getRepositoryToken(Shift));
     leaveRepository = module.get<Repository<LeaveRecord>>(getRepositoryToken(LeaveRecord));
     deploymentRepository = module.get<Repository<Deployment>>(getRepositoryToken(Deployment));
   });
@@ -40,6 +42,12 @@ describe('ValidationService - Qualifications', () => {
     jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
     jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
     jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    } as any);
 
     const input: ShiftValidationInput = {
       taskId: 'task1',
@@ -61,6 +69,12 @@ describe('ValidationService - Qualifications', () => {
     jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
     jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
     jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    } as any);
 
     const input: ShiftValidationInput = {
       taskId: 'task1',
@@ -81,6 +95,7 @@ describe('ValidationService - Qualifications', () => {
 describe('ValidationService - Leave Conflicts', () => {
   let service: ValidationService;
   let soldiersRepository: Repository<Soldier>;
+  let shiftsRepository: Repository<Shift>;
   let leaveRepository: Repository<LeaveRecord>;
   let deploymentRepository: Repository<Deployment>;
 
@@ -99,6 +114,7 @@ describe('ValidationService - Leave Conflicts', () => {
 
     service = module.get<ValidationService>(ValidationService);
     soldiersRepository = module.get<Repository<Soldier>>(getRepositoryToken(Soldier));
+    shiftsRepository = module.get<Repository<Shift>>(getRepositoryToken(Shift));
     leaveRepository = module.get<Repository<LeaveRecord>>(getRepositoryToken(LeaveRecord));
     deploymentRepository = module.get<Repository<Deployment>>(getRepositoryToken(Deployment));
   });
@@ -115,6 +131,12 @@ describe('ValidationService - Leave Conflicts', () => {
     jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
     jest.spyOn(leaveRepository, 'find').mockResolvedValue([leave]);
     jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    } as any);
 
     const input: ShiftValidationInput = {
       taskId: 'task1',
@@ -136,6 +158,12 @@ describe('ValidationService - Leave Conflicts', () => {
     jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
     jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
     jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    } as any);
 
     const input: ShiftValidationInput = {
       taskId: 'task1',
@@ -262,5 +290,93 @@ describe('ValidationService - Rest Periods', () => {
 
     const restViolations = result.violations.filter(v => v.message.includes('rest'));
     expect(restViolations).toHaveLength(0);
+  });
+});
+
+describe('ValidationService - Overlap Detection', () => {
+  let service: ValidationService;
+  let soldiersRepository: Repository<Soldier>;
+  let shiftsRepository: Repository<Shift>;
+  let assignmentsRepository: Repository<ShiftAssignment>;
+  let leaveRepository: Repository<LeaveRecord>;
+  let deploymentRepository: Repository<Deployment>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ValidationService,
+        { provide: getRepositoryToken(Soldier), useClass: Repository },
+        { provide: getRepositoryToken(Shift), useClass: Repository },
+        { provide: getRepositoryToken(ShiftAssignment), useClass: Repository },
+        { provide: getRepositoryToken(LeaveRecord), useClass: Repository },
+        { provide: getRepositoryToken(Deployment), useClass: Repository },
+        { provide: getRepositoryToken(Task), useClass: Repository },
+      ],
+    }).compile();
+
+    service = module.get<ValidationService>(ValidationService);
+    soldiersRepository = module.get<Repository<Soldier>>(getRepositoryToken(Soldier));
+    shiftsRepository = module.get<Repository<Shift>>(getRepositoryToken(Shift));
+    assignmentsRepository = module.get<Repository<ShiftAssignment>>(getRepositoryToken(ShiftAssignment));
+    leaveRepository = module.get<Repository<LeaveRecord>>(getRepositoryToken(LeaveRecord));
+    deploymentRepository = module.get<Repository<Deployment>>(getRepositoryToken(Deployment));
+  });
+
+  it('should reject shift when soldier has overlapping shift', async () => {
+    const soldier = { id: '1', name: 'John Doe', isCommander: true } as Soldier;
+    const overlappingShift = {
+      id: 'shift1',
+      startTime: new Date('2026-01-10T10:00:00Z'),
+      endTime: new Date('2026-01-10T18:00:00Z'),
+    } as Shift;
+
+    jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
+    jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([overlappingShift]),
+    } as any);
+
+    const input: ShiftValidationInput = {
+      taskId: 'task1',
+      startTime: new Date('2026-01-10T14:00:00Z'), // Overlaps with existing shift
+      endTime: new Date('2026-01-10T22:00:00Z'),
+      assignments: [{ soldierId: '1', role: AssignmentRole.COMMANDER }],
+    };
+
+    const result = await service.validateShift(input);
+
+    const overlapViolations = result.violations.filter(v => v.message.includes('overlap') || v.message.includes('already assigned'));
+    expect(overlapViolations.length).toBeGreaterThan(0);
+    expect(overlapViolations[0].severity).toBe(ViolationSeverity.ERROR);
+  });
+
+  it('should accept shift when soldier has no overlapping shifts', async () => {
+    const soldier = { id: '1', name: 'John Doe', isCommander: true } as Soldier;
+
+    jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
+    jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    } as any);
+
+    const input: ShiftValidationInput = {
+      taskId: 'task1',
+      startTime: new Date('2026-01-10T08:00:00Z'),
+      endTime: new Date('2026-01-10T16:00:00Z'),
+      assignments: [{ soldierId: '1', role: AssignmentRole.COMMANDER }],
+    };
+
+    const result = await service.validateShift(input);
+
+    const overlapViolations = result.violations.filter(v => v.message.includes('overlap') || v.message.includes('already assigned'));
+    expect(overlapViolations).toHaveLength(0);
   });
 });
