@@ -420,15 +420,17 @@ describe('ValidationService - Minimum Presence', () => {
     } as Deployment;
 
     const soldiers = [
-      { id: '1', name: 'Soldier 1', isCommander: true } as Soldier,
-      { id: '2', name: 'Soldier 2', isDriver: true } as Soldier,
+      { id: '1', name: 'Soldier 1', isCommander: true, vacationQuotaDays: 20, vacationDaysUsed: 0 } as Soldier,
+      { id: '2', name: 'Soldier 2', isDriver: true, vacationQuotaDays: 20, vacationDaysUsed: 0 } as Soldier,
     ];
 
     // Mock: only 2 soldiers on this new shift
     jest.spyOn(deploymentRepository, 'find').mockResolvedValue([deployment]);
     jest.spyOn(soldiersRepository, 'findOne')
-      .mockResolvedValueOnce(soldiers[0])
-      .mockResolvedValueOnce(soldiers[1]);
+      .mockResolvedValueOnce(soldiers[0]) // validateQualifications - soldier 1
+      .mockResolvedValueOnce(soldiers[1]) // validateQualifications - soldier 2
+      .mockResolvedValueOnce(soldiers[0]) // validateVacationQuota - soldier 1
+      .mockResolvedValueOnce(soldiers[1]); // validateVacationQuota - soldier 2
     jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
     jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
       leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -469,9 +471,16 @@ describe('ValidationService - Minimum Presence', () => {
       id: `${i + 1}`,
       name: `Soldier ${i + 1}`,
       isCommander: i === 0,
+      vacationQuotaDays: 20,
+      vacationDaysUsed: 0,
     } as Soldier));
 
     jest.spyOn(deploymentRepository, 'find').mockResolvedValue([deployment]);
+    // Mock for validateQualifications (5 soldiers)
+    soldiers.forEach((soldier) => {
+      jest.spyOn(soldiersRepository, 'findOne').mockResolvedValueOnce(soldier);
+    });
+    // Mock for validateVacationQuota (5 soldiers)
     soldiers.forEach((soldier) => {
       jest.spyOn(soldiersRepository, 'findOne').mockResolvedValueOnce(soldier);
     });
@@ -499,5 +508,102 @@ describe('ValidationService - Minimum Presence', () => {
       v.message.includes('presence') || v.message.includes('manpower')
     );
     expect(presenceViolations).toHaveLength(0);
+  });
+});
+
+describe('ValidationService - Vacation Quota', () => {
+  let service: ValidationService;
+  let soldiersRepository: Repository<Soldier>;
+  let shiftsRepository: Repository<Shift>;
+  let leaveRepository: Repository<LeaveRecord>;
+  let deploymentRepository: Repository<Deployment>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ValidationService,
+        { provide: getRepositoryToken(Soldier), useClass: Repository },
+        { provide: getRepositoryToken(Shift), useClass: Repository },
+        { provide: getRepositoryToken(ShiftAssignment), useClass: Repository },
+        { provide: getRepositoryToken(LeaveRecord), useClass: Repository },
+        { provide: getRepositoryToken(Deployment), useClass: Repository },
+        { provide: getRepositoryToken(Task), useClass: Repository },
+      ],
+    }).compile();
+
+    service = module.get<ValidationService>(ValidationService);
+    soldiersRepository = module.get<Repository<Soldier>>(getRepositoryToken(Soldier));
+    shiftsRepository = module.get<Repository<Shift>>(getRepositoryToken(Shift));
+    leaveRepository = module.get<Repository<LeaveRecord>>(getRepositoryToken(LeaveRecord));
+    deploymentRepository = module.get<Repository<Deployment>>(getRepositoryToken(Deployment));
+  });
+
+  it('should warn when soldier has exceeded vacation quota', async () => {
+    const soldier = {
+      id: '1',
+      name: 'John Doe',
+      isCommander: true,
+      vacationQuotaDays: 20,
+      vacationDaysUsed: 25, // Exceeded quota
+    } as Soldier;
+
+    jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
+    jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    } as any);
+
+    const input: ShiftValidationInput = {
+      taskId: 'task1',
+      startTime: new Date('2026-01-10T08:00:00Z'),
+      endTime: new Date('2026-01-10T16:00:00Z'),
+      assignments: [{ soldierId: '1', role: AssignmentRole.COMMANDER }],
+    };
+
+    const result = await service.validateShift(input);
+
+    const quotaViolations = result.violations.filter(v =>
+      v.message.includes('vacation') || v.message.includes('quota')
+    );
+    expect(quotaViolations.length).toBeGreaterThan(0);
+    expect(quotaViolations[0].severity).toBe(ViolationSeverity.WARNING);
+  });
+
+  it('should accept when soldier is within vacation quota', async () => {
+    const soldier = {
+      id: '1',
+      name: 'John Doe',
+      isCommander: true,
+      vacationQuotaDays: 20,
+      vacationDaysUsed: 10, // Within quota
+    } as Soldier;
+
+    jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
+    jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    } as any);
+
+    const input: ShiftValidationInput = {
+      taskId: 'task1',
+      startTime: new Date('2026-01-10T08:00:00Z'),
+      endTime: new Date('2026-01-10T16:00:00Z'),
+      assignments: [{ soldierId: '1', role: AssignmentRole.COMMANDER }],
+    };
+
+    const result = await service.validateShift(input);
+
+    const quotaViolations = result.violations.filter(v =>
+      v.message.includes('vacation') || v.message.includes('quota')
+    );
+    expect(quotaViolations).toHaveLength(0);
   });
 });

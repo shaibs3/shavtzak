@@ -337,7 +337,33 @@ export class ValidationService {
   }
 
   private async validateVacationQuota(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
-    return [];
+    const violations: ConstraintViolation[] = [];
+
+    for (const assignment of input.assignments) {
+      const soldier = await this.soldiersRepository.findOne({
+        where: { id: assignment.soldierId },
+      });
+
+      if (!soldier) {
+        continue; // Already handled by qualification validation
+      }
+
+      // Check if soldier has exceeded vacation quota
+      if (soldier.vacationDaysUsed >= soldier.vacationQuotaDays) {
+        violations.push({
+          severity: ViolationSeverity.WARNING,
+          message: `${soldier.name} has exceeded vacation quota (${soldier.vacationDaysUsed}/${soldier.vacationQuotaDays} days used)`,
+          field: 'assignments',
+          details: {
+            soldierId: soldier.id,
+            vacationQuotaDays: soldier.vacationQuotaDays,
+            vacationDaysUsed: soldier.vacationDaysUsed,
+          },
+        });
+      }
+    }
+
+    return violations;
   }
 
   private async validateTaskRequirements(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
