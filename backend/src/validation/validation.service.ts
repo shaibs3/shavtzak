@@ -160,7 +160,70 @@ export class ValidationService {
   }
 
   private async validateRestPeriods(input: ShiftValidationInput): Promise<ConstraintViolation[]> {
-    return [];
+    const violations: ConstraintViolation[] = [];
+
+    // Get active deployment to check minimum rest hours
+    const activeDeployments = await this.deploymentRepository.find({
+      where: { isActive: true },
+    });
+
+    if (activeDeployments.length === 0) {
+      return violations; // No active deployment, skip rest period check
+    }
+
+    const deployment = activeDeployments[0];
+    const minimumRestHours = deployment.minimumRestHours;
+
+    for (const assignment of input.assignments) {
+      // Get recent shifts for this soldier (last 48 hours before new shift starts)
+      const lookbackTime = new Date(input.startTime);
+      lookbackTime.setHours(lookbackTime.getHours() - 48);
+
+      const recentShifts = await this.shiftsRepository
+        .createQueryBuilder('shift')
+        .leftJoinAndSelect('shift.assignments', 'assignments')
+        .where('assignments.soldierId = :soldierId', { soldierId: assignment.soldierId })
+        .andWhere('shift.endTime >= :lookbackTime', { lookbackTime })
+        .andWhere('shift.endTime <= :newShiftStart', { newShiftStart: input.startTime })
+        .getMany();
+
+      // Check if excluding current shift being updated
+      const shiftsToCheck = input.shiftId
+        ? recentShifts.filter(s => s.id !== input.shiftId)
+        : recentShifts;
+
+      for (const previousShift of shiftsToCheck) {
+        const previousShiftEnd = new Date(previousShift.endTime);
+        const newShiftStart = new Date(input.startTime);
+
+        const restHours = (newShiftStart.getTime() - previousShiftEnd.getTime()) / (1000 * 60 * 60);
+
+        if (restHours < minimumRestHours) {
+          // Get soldier info from assignments
+          const previousAssignment = await this.assignmentsRepository.find({
+            where: { shiftId: previousShift.id, soldierId: assignment.soldierId },
+            relations: ['soldier'],
+          });
+
+          const soldierName = previousAssignment[0]?.soldier?.name || 'Soldier';
+
+          violations.push({
+            severity: ViolationSeverity.ERROR,
+            message: `${soldierName} requires ${minimumRestHours}h rest, but only has ${restHours.toFixed(1)}h between shifts`,
+            field: 'assignments',
+            details: {
+              soldierId: assignment.soldierId,
+              previousShiftEnd: previousShiftEnd,
+              newShiftStart: newShiftStart,
+              restHours: restHours,
+              minimumRestHours: minimumRestHours,
+            },
+          });
+        }
+      }
+    }
+
+    return violations;
   }
 
   private async validateNoOverlaps(input: ShiftValidationInput): Promise<ConstraintViolation[]> {

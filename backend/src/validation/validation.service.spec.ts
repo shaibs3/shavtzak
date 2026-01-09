@@ -14,6 +14,7 @@ describe('ValidationService - Qualifications', () => {
   let service: ValidationService;
   let soldiersRepository: Repository<Soldier>;
   let leaveRepository: Repository<LeaveRecord>;
+  let deploymentRepository: Repository<Deployment>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -31,12 +32,14 @@ describe('ValidationService - Qualifications', () => {
     service = module.get<ValidationService>(ValidationService);
     soldiersRepository = module.get<Repository<Soldier>>(getRepositoryToken(Soldier));
     leaveRepository = module.get<Repository<LeaveRecord>>(getRepositoryToken(LeaveRecord));
+    deploymentRepository = module.get<Repository<Deployment>>(getRepositoryToken(Deployment));
   });
 
   it('should reject commander assignment for non-commander soldier', async () => {
     const soldier = { id: '1', name: 'John', isCommander: false, isDriver: false, isSpecialist: false } as Soldier;
     jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
     jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
 
     const input: ShiftValidationInput = {
       taskId: 'task1',
@@ -57,6 +60,7 @@ describe('ValidationService - Qualifications', () => {
     const soldier = { id: '1', name: 'John', isCommander: true, isDriver: false, isSpecialist: false } as Soldier;
     jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
     jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
 
     const input: ShiftValidationInput = {
       taskId: 'task1',
@@ -78,6 +82,7 @@ describe('ValidationService - Leave Conflicts', () => {
   let service: ValidationService;
   let soldiersRepository: Repository<Soldier>;
   let leaveRepository: Repository<LeaveRecord>;
+  let deploymentRepository: Repository<Deployment>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -95,6 +100,7 @@ describe('ValidationService - Leave Conflicts', () => {
     service = module.get<ValidationService>(ValidationService);
     soldiersRepository = module.get<Repository<Soldier>>(getRepositoryToken(Soldier));
     leaveRepository = module.get<Repository<LeaveRecord>>(getRepositoryToken(LeaveRecord));
+    deploymentRepository = module.get<Repository<Deployment>>(getRepositoryToken(Deployment));
   });
 
   it('should reject shift assignment for soldier on leave', async () => {
@@ -108,6 +114,7 @@ describe('ValidationService - Leave Conflicts', () => {
 
     jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
     jest.spyOn(leaveRepository, 'find').mockResolvedValue([leave]);
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
 
     const input: ShiftValidationInput = {
       taskId: 'task1',
@@ -128,6 +135,7 @@ describe('ValidationService - Leave Conflicts', () => {
 
     jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
     jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([]);
 
     const input: ShiftValidationInput = {
       taskId: 'task1',
@@ -140,5 +148,119 @@ describe('ValidationService - Leave Conflicts', () => {
 
     const leaveViolations = result.violations.filter(v => v.message.includes('on leave'));
     expect(leaveViolations).toHaveLength(0);
+  });
+});
+
+describe('ValidationService - Rest Periods', () => {
+  let service: ValidationService;
+  let soldiersRepository: Repository<Soldier>;
+  let shiftsRepository: Repository<Shift>;
+  let assignmentsRepository: Repository<ShiftAssignment>;
+  let leaveRepository: Repository<LeaveRecord>;
+  let deploymentRepository: Repository<Deployment>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ValidationService,
+        { provide: getRepositoryToken(Soldier), useClass: Repository },
+        { provide: getRepositoryToken(Shift), useClass: Repository },
+        { provide: getRepositoryToken(ShiftAssignment), useClass: Repository },
+        { provide: getRepositoryToken(LeaveRecord), useClass: Repository },
+        { provide: getRepositoryToken(Deployment), useClass: Repository },
+        { provide: getRepositoryToken(Task), useClass: Repository },
+      ],
+    }).compile();
+
+    service = module.get<ValidationService>(ValidationService);
+    soldiersRepository = module.get<Repository<Soldier>>(getRepositoryToken(Soldier));
+    shiftsRepository = module.get<Repository<Shift>>(getRepositoryToken(Shift));
+    assignmentsRepository = module.get<Repository<ShiftAssignment>>(getRepositoryToken(ShiftAssignment));
+    leaveRepository = module.get<Repository<LeaveRecord>>(getRepositoryToken(LeaveRecord));
+    deploymentRepository = module.get<Repository<Deployment>>(getRepositoryToken(Deployment));
+  });
+
+  it('should reject shift when soldier has insufficient rest period', async () => {
+    const soldier = { id: '1', name: 'John Doe', isCommander: true } as Soldier;
+    const previousShift = {
+      id: 'shift1',
+      startTime: new Date('2026-01-10T06:00:00Z'),
+      endTime: new Date('2026-01-10T14:00:00Z'),
+    } as Shift;
+    const previousAssignment = {
+      soldierId: '1',
+      shiftId: 'shift1',
+      soldier,
+    } as ShiftAssignment;
+
+    const deployment = {
+      minimumRestHours: 12,
+      isActive: true,
+      startDate: new Date('2026-01-01'),
+      endDate: new Date('2026-02-01'),
+    } as Deployment;
+
+    jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
+    jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([previousShift]),
+    } as any);
+    jest.spyOn(assignmentsRepository, 'find').mockResolvedValue([previousAssignment]);
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([deployment]);
+
+    const input: ShiftValidationInput = {
+      taskId: 'task1',
+      startTime: new Date('2026-01-10T18:00:00Z'), // Only 4 hours after previous shift
+      endTime: new Date('2026-01-10T22:00:00Z'),
+      assignments: [{ soldierId: '1', role: AssignmentRole.COMMANDER }],
+    };
+
+    const result = await service.validateShift(input);
+
+    const restViolations = result.violations.filter(v => v.message.includes('rest'));
+    expect(restViolations.length).toBeGreaterThan(0);
+    expect(restViolations[0].severity).toBe(ViolationSeverity.ERROR);
+  });
+
+  it('should accept shift when soldier has sufficient rest period', async () => {
+    const soldier = { id: '1', name: 'John Doe', isCommander: true } as Soldier;
+    const previousShift = {
+      id: 'shift1',
+      startTime: new Date('2026-01-10T06:00:00Z'),
+      endTime: new Date('2026-01-10T14:00:00Z'),
+    } as Shift;
+
+    const deployment = {
+      minimumRestHours: 12,
+      isActive: true,
+      startDate: new Date('2026-01-01'),
+      endDate: new Date('2026-02-01'),
+    } as Deployment;
+
+    jest.spyOn(soldiersRepository, 'findOne').mockResolvedValue(soldier);
+    jest.spyOn(leaveRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(shiftsRepository, 'createQueryBuilder').mockReturnValue({
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([previousShift]),
+    } as any);
+    jest.spyOn(assignmentsRepository, 'find').mockResolvedValue([]);
+    jest.spyOn(deploymentRepository, 'find').mockResolvedValue([deployment]);
+
+    const input: ShiftValidationInput = {
+      taskId: 'task1',
+      startTime: new Date('2026-01-11T06:00:00Z'), // 16 hours after previous shift
+      endTime: new Date('2026-01-11T14:00:00Z'),
+      assignments: [{ soldierId: '1', role: AssignmentRole.COMMANDER }],
+    };
+
+    const result = await service.validateShift(input);
+
+    const restViolations = result.violations.filter(v => v.message.includes('rest'));
+    expect(restViolations).toHaveLength(0);
   });
 });
