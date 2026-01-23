@@ -19,9 +19,11 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     <aside className="w-64 bg-military-dark min-h-screen p-4 flex flex-col shrink-0" dir="rtl">
       <div className="mb-8 px-2">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg gradient-military flex items-center justify-center">
-            <Calendar className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img
+            src="/lavi-logo.png"
+            alt="Lavi Logo"
+            className="w-10 h-10 rounded-lg object-contain"
+          />
           <div>
             <h1 className="text-lg font-bold text-white">שבצ״ק</h1>
             <p className="text-xs text-sidebar-foreground/60">מערכת שיבוצים</p>
