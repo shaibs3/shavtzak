@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { databaseConfig } from './config/database.config';
+import { SoldiersModule } from './soldiers/soldiers.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { databaseConfig } from './config/database.config';
       isGlobal: true,
     }),
     TypeOrmModule.forRoot(databaseConfig),
+    SoldiersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
