@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { databaseConfig } from './config/database.config';
 import { SoldiersModule } from './soldiers/soldiers.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { SoldiersModule } from './soldiers/soldiers.module';
     }),
     TypeOrmModule.forRoot(databaseConfig),
     SoldiersModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [AppService],
