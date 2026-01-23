@@ -6,6 +6,8 @@ import { AppService } from './app.service';
 import { databaseConfig } from './config/database.config';
 import { SoldiersModule } from './soldiers/soldiers.module';
 import { TasksModule } from './tasks/tasks.module';
+import { AssignmentsModule } from './assignments/assignments.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { TasksModule } from './tasks/tasks.module';
     TypeOrmModule.forRoot(databaseConfig),
     SoldiersModule,
     TasksModule,
+    AssignmentsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
