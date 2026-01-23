@@ -1,0 +1,156 @@
+import { useState } from 'react';
+import { Plus, Edit2, Trash2, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useSchedulingStore } from '@/store/schedulingStore';
+import { roleLabels, Soldier } from '@/types/scheduling';
+import { SoldierForm } from './SoldierForm';
+import { ConstraintForm } from './ConstraintForm';
+
+export function SoldiersView() {
+  const { soldiers, addSoldier, updateSoldier, deleteSoldier } = useSchedulingStore();
+  const [showForm, setShowForm] = useState(false);
+  const [editingSoldier, setEditingSoldier] = useState<Soldier | null>(null);
+  const [constraintSoldier, setConstraintSoldier] = useState<Soldier | null>(null);
+
+  const handleSubmit = (data: Omit<Soldier, 'id' | 'constraints'>) => {
+    if (editingSoldier) {
+      updateSoldier(editingSoldier.id, data);
+    } else {
+      addSoldier({ ...data, constraints: [] });
+    }
+    setShowForm(false);
+    setEditingSoldier(null);
+  };
+
+  const handleEdit = (soldier: Soldier) => {
+    setEditingSoldier(soldier);
+    setShowForm(true);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('האם אתה בטוח שברצונך למחוק חייל זה?')) {
+      deleteSoldier(id);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">ניהול חיילים</h2>
+          <p className="text-muted-foreground mt-1">הוסף ונהל חיילים ואילוציהם</p>
+        </div>
+        <Button onClick={() => setShowForm(true)} className="gap-2">
+          <Plus className="w-4 h-4" />
+          הוסף חייל
+        </Button>
+      </div>
+
+      <div className="bg-card rounded-xl shadow-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">שם</th>
+                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">דרגה</th>
+                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">תפקידים</th>
+                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">חופשה</th>
+                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">אילוצים</th>
+                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">פעולות</th>
+              </tr>
+            </thead>
+            <tbody>
+              {soldiers.map((soldier) => (
+                <tr key={soldier.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-primary">
+                          {soldier.name.split(' ').map(n => n[0]).join('')}
+                        </span>
+                      </div>
+                      <span className="font-medium">{soldier.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{soldier.rank}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {soldier.roles.map((role) => (
+                        <Badge key={role} variant="secondary" className="text-xs">
+                          {roleLabels[role]}
+                        </Badge>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="font-medium">{soldier.usedVacationDays}</span>
+                    <span className="text-muted-foreground">/{soldier.maxVacationDays}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setConstraintSoldier(soldier)}
+                      className="gap-1 text-muted-foreground hover:text-foreground"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      {soldier.constraints.length} אילוצים
+                    </Button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(soldier)}
+                        className="h-8 w-8"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(soldier.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {soldiers.length === 0 && (
+          <div className="py-12 text-center text-muted-foreground">
+            <p>אין חיילים במערכת</p>
+            <Button onClick={() => setShowForm(true)} variant="link" className="mt-2">
+              הוסף חייל ראשון
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {showForm && (
+        <SoldierForm
+          soldier={editingSoldier || undefined}
+          onSubmit={handleSubmit}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingSoldier(null);
+          }}
+        />
+      )}
+
+      {constraintSoldier && (
+        <ConstraintForm
+          soldier={constraintSoldier}
+          onClose={() => setConstraintSoldier(null)}
+        />
+      )}
+    </div>
+  );
+}

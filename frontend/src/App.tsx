@@ -1,28 +1,27 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import MainLayout from './layouts/MainLayout';
-import SchedulePage from './features/schedule/SchedulePage';
-import SoldiersPage from './features/soldiers/SoldiersPage';
-import TasksPage from './features/tasks/TasksPage';
-import LeavePage from './features/leave/LeavePage';
-import DeploymentPage from './features/deployment/DeploymentPage';
-import DashboardPage from './features/dashboard/DashboardPage';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
 
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Navigate to="/schedule" replace />} />
-          <Route path="schedule" element={<SchedulePage />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="soldiers" element={<SoldiersPage />} />
-          <Route path="tasks" element={<TasksPage />} />
-          <Route path="leave" element={<LeavePage />} />
-          <Route path="deployment" element={<DeploymentPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
-}
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;
