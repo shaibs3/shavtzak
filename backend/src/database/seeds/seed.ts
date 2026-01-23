@@ -19,12 +19,43 @@ export async function seed(dataSource: DataSource) {
 
   // Clear existing data (in reverse FK order)
   console.log('Clearing existing data...');
-  await assignmentRepo.delete({});
-  await constraintRepo.delete({});
-  await taskRoleRepo.delete({});
-  await taskRepo.delete({});
-  await soldierRepo.delete({});
-  await settingsRepo.delete({});
+
+  // Use query builder to delete all records (respects foreign keys)
+  await dataSource
+    .createQueryBuilder()
+    .delete()
+    .from(Assignment)
+    .execute();
+
+  await dataSource
+    .createQueryBuilder()
+    .delete()
+    .from(Constraint)
+    .execute();
+
+  await dataSource
+    .createQueryBuilder()
+    .delete()
+    .from(TaskRole)
+    .execute();
+
+  await dataSource
+    .createQueryBuilder()
+    .delete()
+    .from(Task)
+    .execute();
+
+  await dataSource
+    .createQueryBuilder()
+    .delete()
+    .from(Soldier)
+    .execute();
+
+  await dataSource
+    .createQueryBuilder()
+    .delete()
+    .from(Settings)
+    .execute();
 
   // Create soldiers with constraints
   console.log('Creating soldiers...');
