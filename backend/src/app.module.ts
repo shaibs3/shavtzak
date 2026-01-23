@@ -1,13 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from './users/users.module';
-import { SoldiersModule } from './soldiers/soldiers.module';
-import { TasksModule } from './tasks/tasks.module';
-import { ShiftsModule } from './shifts/shifts.module';
-import { LeaveModule } from './leave/leave.module';
-import { DeploymentModule } from './deployment/deployment.module';
-import { ValidationModule } from './validation/validation.module';
 
 @Module({
   imports: [
@@ -29,13 +22,6 @@ import { ValidationModule } from './validation/validation.module';
       }),
       inject: [ConfigService],
     }),
-    UsersModule,
-    SoldiersModule,
-    TasksModule,
-    ShiftsModule,
-    LeaveModule,
-    DeploymentModule,
-    ValidationModule,
   ],
 })
 export class AppModule {}
