@@ -9,7 +9,8 @@ test.describe('Error Handling', () => {
     await page.waitForLoadState('networkidle');
 
     // Navigate to soldiers - should load successfully first
-    await page.click('text=חיילים');
+    await page.click('button:has-text("חיילים")');
+    await page.waitForSelector('text=ניהול חיילים', { timeout: 10000 });
     await page.waitForSelector('tbody tr', { timeout: 5000 });
 
     // Now we need to simulate backend failure
@@ -20,13 +21,12 @@ test.describe('Error Handling', () => {
 
     // Try to create a soldier (should fail)
     await page.click('text=הוסף חייל');
-    await page.waitForSelector('text=הוסף חייל חדש');
-    await page.fill('input[name="name"]', 'בדיקה שגיאה');
-    await page.fill('input[name="rank"]', 'טוראי');
-    await page.fill('input[name="maxVacationDays"]', '7');
-    await page.fill('input[name="usedVacationDays"]', '0');
-    await page.check('input[value="soldier"]');
-    await page.click('button:has-text("שמור")');
+    await page.waitForSelector('text=הוספת חייל חדש');
+    await page.fill('input[id="name"]', 'בדיקה שגיאה');
+    await page.fill('input[id="rank"]', 'טוראי');
+    await page.fill('input[id="maxVacation"]', '7');
+    await page.fill('input[id="usedVacation"]', '0');
+    await page.click('button:has-text("הוסף חייל")');
 
     // Should show error toast
     await page.waitForSelector('text=שגיאה', { timeout: 5000 });
@@ -42,9 +42,11 @@ test.describe('Error Handling', () => {
     });
 
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
 
     // Click on soldiers tab
-    await page.click('text=חיילים');
+    await page.click('button:has-text("חיילים")');
+    await page.waitForSelector('text=ניהול חיילים', { timeout: 10000 });
 
     // Should show error state with retry button
     await expect(page.locator('text=שגיאה בטעינת החיילים')).toBeVisible({ timeout: 5000 });
@@ -60,6 +62,7 @@ test.describe('Error Handling', () => {
 
   test('should recover when backend becomes available', async ({ page }) => {
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
 
     // Block API temporarily
     await page.route('http://localhost:3000/api/**', route => {
@@ -67,7 +70,8 @@ test.describe('Error Handling', () => {
     });
 
     // Try to load soldiers
-    await page.click('text=חיילים');
+    await page.click('button:has-text("חיילים")');
+    await page.waitForSelector('text=ניהול חיילים', { timeout: 10000 });
     await page.waitForSelector('text=שגיאה בטעינת החיילים', { timeout: 5000 });
 
     // Unblock API (simulating backend coming back online)

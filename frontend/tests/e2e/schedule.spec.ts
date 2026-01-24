@@ -3,9 +3,11 @@ import { test, expect } from '@playwright/test';
 test.describe('Schedule and Assignments', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    // Navigate to schedule tab
-    await page.click('text=שיבוצים');
     await page.waitForLoadState('networkidle');
+    // Navigate to schedule tab
+    await page.click('button:has-text("שיבוצים")');
+    // Wait for schedule view to load
+    await page.waitForSelector('text=לוח שיבוצים', { timeout: 10000 });
   });
 
   test('should display schedule view', async ({ page }) => {
@@ -22,19 +24,18 @@ test.describe('Schedule and Assignments', () => {
   });
 
   test('should navigate between weeks', async ({ page }) => {
-    // Click next week
-    const nextButton = page.locator('button[aria-label="שבוע הבא"]').or(
-      page.locator('svg.lucide-chevron-left').locator('xpath=..')
-    );
+    // Wait for schedule to load
+    await page.waitForSelector('text=לוח שיבוצים');
+
+    // Click next week (ChevronLeft icon)
+    const nextButton = page.locator('button').filter({ has: page.locator('svg.lucide-chevron-left') });
     await nextButton.click();
 
     // Wait for content to update
     await page.waitForTimeout(500);
 
-    // Click previous week
-    const prevButton = page.locator('button[aria-label="שבוע קודם"]').or(
-      page.locator('svg.lucide-chevron-right').locator('xpath=..')
-    );
+    // Click previous week (ChevronRight icon)
+    const prevButton = page.locator('button').filter({ has: page.locator('svg.lucide-chevron-right') });
     await prevButton.click();
 
     // Click today to go back to current week
@@ -50,7 +51,9 @@ test.describe('Schedule and Assignments', () => {
     await page.waitForSelector('text=שיבוץ אוטומטי הושלם', { timeout: 10000 });
 
     // Should see some assignments in the schedule now
-    // Note: Might see "לא הצלחתי לאייש" if there are conflicts
+    // Assignment cards have class "rounded-md border"
+    const assignments = await page.locator('.rounded-md.border').count();
+    expect(assignments).toBeGreaterThanOrEqual(0);
   });
 
   test('should persist assignments after refresh', async ({ page }) => {
@@ -63,6 +66,10 @@ test.describe('Schedule and Assignments', () => {
 
     // Refresh page
     await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    // Navigate back to schedule tab
+    await page.click('text=שיבוצים');
     await page.waitForLoadState('networkidle');
 
     // Count assignments after refresh

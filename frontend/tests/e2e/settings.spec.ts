@@ -3,9 +3,11 @@ import { test, expect } from '@playwright/test';
 test.describe('Settings Management', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    // Navigate to settings tab
-    await page.click('text=הגדרות');
     await page.waitForLoadState('networkidle');
+    // Navigate to settings tab
+    await page.click('button:has-text("הגדרות")');
+    // Wait for settings view to load
+    await page.waitForSelector('text=הגדרות מערכת', { timeout: 10000 });
   });
 
   test('should display current settings', async ({ page }) => {
