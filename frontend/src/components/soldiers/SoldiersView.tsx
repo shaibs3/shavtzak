@@ -8,9 +8,7 @@ import { SoldierForm } from './SoldierForm';
 import { ConstraintForm } from './ConstraintForm';
 
 export function SoldiersView() {
-  console.log('SoldiersView component mounted');
   const { data: soldiers, isLoading, error, refetch } = useSoldiers();
-  console.log('useSoldiers result:', { soldiers: soldiers?.length, isLoading, error: error?.message });
   const createSoldier = useCreateSoldier();
   const updateSoldier = useUpdateSoldier();
   const deleteSoldier = useDeleteSoldier();

@@ -8,11 +8,8 @@ export const useSoldiers = () => {
     queryKey: ['soldiers'],
     queryFn: async () => {
       const response = await soldiersService.getAll();
-      console.log('API returned soldiers:', response.data.length);
       return response.data;
     },
-    staleTime: 0,
-    gcTime: 0,
   });
 };
 
