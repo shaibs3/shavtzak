@@ -57,53 +57,78 @@ export async function seed(dataSource: DataSource) {
     .from(Settings)
     .execute();
 
-  // Create soldiers with constraints
-  console.log('Creating soldiers...');
+  // Create 70 soldiers with constraints
+  console.log('Creating 70 soldiers...');
 
-  const yossi = soldierRepo.create({
-    name: 'יוסי כהן',
-    rank: 'סמל',
-    roles: ['driver', 'soldier'],
-    maxVacationDays: 5,
-    usedVacationDays: 0,
-  });
-  await soldierRepo.save(yossi);
+  const firstNames = [
+    'יוסי', 'דני', 'מיכל', 'שרון', 'עומר', 'רון', 'תומר', 'אורי', 'עידו', 'נועם',
+    'יונתן', 'אביב', 'גיא', 'שחר', 'לירון', 'איתי', 'רועי', 'דור', 'עדי', 'נתנאל',
+    'אלעד', 'אלון', 'יניב', 'אסף', 'עמית', 'שי', 'טל', 'ליאור', 'אביגיל', 'נועה',
+    'שירה', 'מאיה', 'רותם', 'יעל', 'תמר', 'הדר', 'ענבר', 'שני', 'ליהי', 'מור',
+    'אדם', 'בן', 'דניאל', 'אייל', 'גל', 'יואב', 'עופר', 'צח', 'שמעון', 'אריאל',
+    'יהודה', 'משה', 'אברהם', 'יצחק', 'יעקב', 'דוד', 'שלמה', 'אליהו', 'אהרון', 'מרים',
+    'רחל', 'לאה', 'שרה', 'רבקה', 'דינה', 'חנה', 'רות', 'אסתר', 'יהושע', 'כלב'
+  ];
 
-  const yossiConstraint = constraintRepo.create({
-    type: 'vacation',
-    startDate: new Date('2024-02-10'),
-    endDate: new Date('2024-02-10'),
-    reason: 'חופשה',
-    soldier: yossi,
-  });
-  await constraintRepo.save(yossiConstraint);
+  const lastNames = [
+    'כהן', 'לוי', 'אברהם', 'מזרחי', 'דהן', 'ביטון', 'שמעון', 'פרץ', 'משה', 'חזן',
+    'אוחיון', 'בן דוד', 'יוסף', 'ברוך', 'ששון', 'מלכה', 'עזרא', 'חיים', 'אליהו', 'שלום',
+    'ישראל', 'אהרון', 'בוזגלו', 'עמר', 'אזולאי', 'אלון', 'בר', 'גולן', 'דגן', 'זהבי',
+    'חן', 'טל', 'יפה', 'כץ', 'לוין', 'מור', 'נחום', 'סער', 'עוז', 'פז'
+  ];
 
-  const danny = soldierRepo.create({
-    name: 'דני לוי',
-    rank: 'רב טוראי',
-    roles: ['soldier'],
-    maxVacationDays: 5,
-    usedVacationDays: 2,
-  });
-  await soldierRepo.save(danny);
+  const ranks = ['טוראי', 'רב טוראי', 'סמל', 'סמל ראשון', 'רס"ל', 'רס"ר', 'סגן', 'סרן'];
 
-  const michal = soldierRepo.create({
-    name: 'מיכל אברהם',
-    rank: 'סגן',
-    roles: ['commander', 'soldier'],
-    maxVacationDays: 7,
-    usedVacationDays: 1,
-  });
-  await soldierRepo.save(michal);
+  const allRoles = [
+    ['soldier'],
+    ['soldier'],
+    ['soldier'],
+    ['driver', 'soldier'],
+    ['driver', 'soldier'],
+    ['radio_operator', 'soldier'],
+    ['radio_operator', 'soldier'],
+    ['commander', 'soldier'],
+  ];
 
-  const michalConstraint = constraintRepo.create({
-    type: 'unavailable',
-    startDate: new Date('2024-02-15'),
-    endDate: new Date('2024-02-15'),
-    reason: 'מילואים',
-    soldier: michal,
-  });
-  await constraintRepo.save(michalConstraint);
+  const constraintTypes = ['vacation', 'unavailable', 'medical'];
+  const constraintReasons = ['חופשה', 'מילואים', 'מחלה', 'יציאה', 'אירוע משפחתי'];
+
+  const soldiers: Soldier[] = [];
+
+  for (let i = 0; i < 70; i++) {
+    const firstName = firstNames[i % firstNames.length];
+    const lastName = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
+    const rank = ranks[Math.floor(Math.random() * ranks.length)];
+    const roles = allRoles[Math.floor(Math.random() * allRoles.length)];
+    const maxVacationDays = Math.floor(Math.random() * 5) + 5; // 5-9 days
+    const usedVacationDays = Math.floor(Math.random() * (maxVacationDays / 2)); // 0 to half used
+
+    const soldier = soldierRepo.create({
+      name: `${firstName} ${lastName}`,
+      rank,
+      roles,
+      maxVacationDays,
+      usedVacationDays,
+    });
+    await soldierRepo.save(soldier);
+    soldiers.push(soldier);
+
+    // Add constraint to ~20% of soldiers
+    if (Math.random() < 0.2) {
+      const daysOffset = Math.floor(Math.random() * 30) - 15; // -15 to +15 days from today
+      const constraintDate = new Date();
+      constraintDate.setDate(constraintDate.getDate() + daysOffset);
+
+      const constraint = constraintRepo.create({
+        type: constraintTypes[Math.floor(Math.random() * constraintTypes.length)],
+        startDate: constraintDate,
+        endDate: constraintDate,
+        reason: constraintReasons[Math.floor(Math.random() * constraintReasons.length)],
+        soldier: soldier,
+      });
+      await constraintRepo.save(constraint);
+    }
+  }
 
   console.log(`Created ${await soldierRepo.count()} soldiers`);
   console.log(`Created ${await constraintRepo.count()} constraints`);
@@ -167,7 +192,7 @@ export async function seed(dataSource: DataSource) {
 
   const settings = settingsRepo.create({
     minBasePresence: 75,
-    totalSoldiers: 20,
+    totalSoldiers: 70,
   });
   await settingsRepo.save(settings);
 
