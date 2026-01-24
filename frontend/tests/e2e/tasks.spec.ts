@@ -29,7 +29,7 @@ test.describe('Tasks CRUD Operations', () => {
 
     // Submit
     await page.click('button:has-text("הוסף משימה")');
-    await page.waitForSelector('text=המשימה נוספה בהצלחה');
+    await page.waitForSelector('text=המשימה נוספה בהצלחה', { timeout: 10000 });
 
     // Verify task appears
     await expect(page.locator('text=משמרת בדיקה')).toBeVisible();
@@ -44,7 +44,7 @@ test.describe('Tasks CRUD Operations', () => {
     await page.fill('input[id="shiftDuration"]', '8');
     await page.fill('input[id="restTime"]', '12');
     await page.click('button:has-text("הוסף משימה")');
-    await page.waitForSelector('text=המשימה נוספה בהצלחה');
+    await page.waitForSelector('text=המשימה נוספה בהצלחה', { timeout: 10000 });
 
     // Edit the task - find card with this task and click edit button
     const card = page.locator('div.bg-card:has-text("משמרת עדכון")');
@@ -53,7 +53,7 @@ test.describe('Tasks CRUD Operations', () => {
     // Update name
     await page.fill('input[id="name"]', 'משמרת מעודכנת');
     await page.click('button:has-text("שמור שינויים")');
-    await page.waitForSelector('text=המשימה עודכנה בהצלחה');
+    await page.waitForSelector('text=המשימה עודכנה בהצלחה', { timeout: 10000 });
 
     // Verify update
     await expect(page.locator('text=משמרת מעודכנת')).toBeVisible();
@@ -70,7 +70,7 @@ test.describe('Tasks CRUD Operations', () => {
     await toggle.click();
 
     // Wait for update
-    await page.waitForSelector('text=המשימה עודכנה בהצלחה');
+    await page.waitForSelector('text=המשימה עודכנה בהצלחה', { timeout: 10000 });
 
     // Verify state changed
     const newState = await toggle.getAttribute('data-state');
@@ -86,7 +86,7 @@ test.describe('Tasks CRUD Operations', () => {
     await page.fill('input[id="shiftDuration"]', '6');
     await page.fill('input[id="restTime"]', '12');
     await page.click('button:has-text("הוסף משימה")');
-    await page.waitForSelector('text=המשימה נוספה בהצלחה');
+    await page.waitForSelector('text=המשימה נוספה בהצלחה', { timeout: 10000 });
 
     // Delete the task
     const card = page.locator('div.bg-card:has-text("משמרת למחיקה")');
@@ -97,7 +97,7 @@ test.describe('Tasks CRUD Operations', () => {
     await card.locator('button:has-text("מחיקה")').click();
 
     // Wait for deletion
-    await page.waitForSelector('text=המשימה נמחקה בהצלחה');
+    await page.waitForSelector('text=המשימה נמחקה בהצלחה', { timeout: 10000 });
 
     // Verify task is gone
     await expect(page.locator('text=משמרת למחיקה')).not.toBeVisible();

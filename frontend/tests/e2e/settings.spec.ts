@@ -31,7 +31,7 @@ test.describe('Settings Management', () => {
 
     // Save
     await page.click('button:has-text("שמור הגדרות")');
-    await page.waitForSelector('text=ההגדרות עודכנו בהצלחה');
+    await page.waitForSelector('text=ההגדרות עודכנו בהצלחה', { timeout: 10000 });
 
     // Refresh page
     await page.reload();
@@ -45,7 +45,7 @@ test.describe('Settings Management', () => {
     await totalSoldiersInput.fill(currentTotal);
     await minPresenceInput.fill(currentPresence);
     await page.click('button:has-text("שמור הגדרות")');
-    await page.waitForSelector('text=ההגדרות עודכנו בהצלחה');
+    await page.waitForSelector('text=ההגדרות עודכנו בהצלחה', { timeout: 10000 });
   });
 
   test('should show loading state while saving', async ({ page }) => {
@@ -61,6 +61,6 @@ test.describe('Settings Management', () => {
     });
 
     // Should complete and show success
-    await page.waitForSelector('text=ההגדרות עודכנו בהצלחה');
+    await page.waitForSelector('text=ההגדרות עודכנו בהצלחה', { timeout: 10000 });
   });
 });

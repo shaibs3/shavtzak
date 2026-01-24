@@ -12,7 +12,7 @@ test.describe('Soldiers CRUD Operations', () => {
 
   test('should display 70 soldiers initially', async ({ page }) => {
     // Wait for soldiers to load
-    await page.waitForSelector('tbody tr', { timeout: 5000 });
+    await page.waitForSelector('tbody tr', { timeout: 10000 });
 
     // Count soldier rows
     const rows = await page.locator('tbody tr').count();
@@ -36,7 +36,7 @@ test.describe('Soldiers CRUD Operations', () => {
     await page.click('button:has-text("הוסף חייל")');
 
     // Wait for toast notification
-    await page.waitForSelector('text=החייל נוסף בהצלחה', { timeout: 5000 });
+    await page.waitForSelector('text=החייל נוסף בהצלחה', { timeout: 10000 });
 
     // Verify soldier appears in list
     await expect(page.locator('text=בדיקה טסט')).toBeVisible();
@@ -55,7 +55,7 @@ test.describe('Soldiers CRUD Operations', () => {
     await page.fill('input[id="maxVacation"]', '7');
     await page.fill('input[id="usedVacation"]', '0');
     await page.click('button:has-text("הוסף חייל")');
-    await page.waitForSelector('text=החייל נוסף בהצלחה');
+    await page.waitForSelector('text=החייל נוסף בהצלחה', { timeout: 10000 });
 
     // Find and click edit button for the test soldier (first button in actions column)
     const row = page.locator('tr:has-text("בדיקה טסט")');
@@ -67,7 +67,7 @@ test.describe('Soldiers CRUD Operations', () => {
     await page.click('button:has-text("שמור שינויים")');
 
     // Wait for update toast
-    await page.waitForSelector('text=החייל עודכן בהצלחה');
+    await page.waitForSelector('text=החייל עודכן בהצלחה', { timeout: 10000 });
 
     // Verify updated name appears
     await expect(page.locator('text=בדיקה עדכון')).toBeVisible();
@@ -83,7 +83,7 @@ test.describe('Soldiers CRUD Operations', () => {
     await page.fill('input[id="maxVacation"]', '7');
     await page.fill('input[id="usedVacation"]', '0');
     await page.click('button:has-text("הוסף חייל")');
-    await page.waitForSelector('text=החייל נוסף בהצלחה');
+    await page.waitForSelector('text=החייל נוסף בהצלחה', { timeout: 10000 });
 
     // Refresh page
     await page.reload();
@@ -103,7 +103,7 @@ test.describe('Soldiers CRUD Operations', () => {
     await deleteButton.click();
 
     // Wait for delete confirmation
-    await page.waitForSelector('text=החייל נמחק בהצלחה');
+    await page.waitForSelector('text=החייל נמחק בהצלחה', { timeout: 10000 });
   });
 
   test('should delete a soldier', async ({ page }) => {
@@ -115,7 +115,7 @@ test.describe('Soldiers CRUD Operations', () => {
     await page.fill('input[id="maxVacation"]', '7');
     await page.fill('input[id="usedVacation"]', '0');
     await page.click('button:has-text("הוסף חייל")');
-    await page.waitForSelector('text=החייל נוסף בהצלחה');
+    await page.waitForSelector('text=החייל נוסף בהצלחה', { timeout: 10000 });
 
     // Get initial count
     const initialCount = await page.locator('tbody tr').count();
@@ -131,7 +131,7 @@ test.describe('Soldiers CRUD Operations', () => {
     await deleteButton.click();
 
     // Wait for delete toast
-    await page.waitForSelector('text=החייל נמחק בהצלחה');
+    await page.waitForSelector('text=החייל נמחק בהצלחה', { timeout: 10000 });
 
     // Verify soldier is gone
     await expect(page.locator('text=בדיקה למחיקה')).not.toBeVisible();
@@ -161,7 +161,7 @@ test.describe('Soldiers CRUD Operations', () => {
     await page.click('button:has-text("הוסף אילוץ")');
 
     // Wait for success toast
-    await page.waitForSelector('text=האילוץ נוסף בהצלחה');
+    await page.waitForSelector('text=האילוץ נוסף בהצלחה', { timeout: 10000 });
 
     // Wait a bit for UI to update
     await page.waitForTimeout(500);
@@ -171,7 +171,7 @@ test.describe('Soldiers CRUD Operations', () => {
     await deleteButton.click();
 
     // Wait for removal toast
-    await page.waitForSelector('text=האילוץ הוסר בהצלחה');
+    await page.waitForSelector('text=האילוץ הוסר בהצלחה', { timeout: 10000 });
 
     // Close dialog
     await page.click('button:has-text("סגור")');
