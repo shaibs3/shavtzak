@@ -57,3 +57,17 @@ export interface ScheduleSettings {
   minBasePresence: number; // percentage (e.g., 75)
   totalSoldiers: number;
 }
+
+// DTOs for API requests
+export type CreateSoldierDto = Omit<Soldier, 'id' | 'constraints'>;
+export type UpdateSoldierDto = Partial<CreateSoldierDto>;
+
+export type CreateConstraintDto = Omit<Constraint, 'id'>;
+
+export type CreateTaskDto = Omit<Task, 'id'>;
+export type UpdateTaskDto = Partial<CreateTaskDto>;
+
+export type CreateAssignmentDto = Omit<Assignment, 'id'>;
+export type UpdateAssignmentDto = Partial<CreateAssignmentDto>;
+
+export type UpdateSettingsDto = Partial<ScheduleSettings>;

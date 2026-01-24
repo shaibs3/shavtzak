@@ -2,7 +2,10 @@ import { useMemo, useState } from 'react';
 import { ChevronRight, ChevronLeft, Calendar, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useSchedulingStore } from '@/store/schedulingStore';
+import { useAssignments, useCreateAssignment, useDeleteAssignment } from '@/hooks/useAssignments';
+import { useSoldiers } from '@/hooks/useSoldiers';
+import { useTasks } from '@/hooks/useTasks';
+import { useSettings } from '@/hooks/useSettings';
 import { roleLabels } from '@/types/scheduling';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -17,13 +20,28 @@ function asDate(value: unknown): Date {
   return new Date(String(value));
 }
 
-const generateId = () => Math.random().toString(36).substring(2, 11);
-
 export function ScheduleView() {
-  const { soldiers, tasks, assignments, settings, setAssignments } = useSchedulingStore();
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => 
+  const { data: assignments, isLoading: assignmentsLoading } = useAssignments();
+  const { data: soldiers, isLoading: soldiersLoading } = useSoldiers();
+  const { data: tasks, isLoading: tasksLoading } = useTasks();
+  const { data: settings, isLoading: settingsLoading } = useSettings();
+  const createAssignment = useCreateAssignment();
+  const deleteAssignment = useDeleteAssignment();
+
+  const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 0 })
   );
+
+  const isLoading = assignmentsLoading || soldiersLoading || tasksLoading || settingsLoading;
+
+  if (isLoading) {
+    return <div className="p-8 text-center">טוען...</div>;
+  }
+
+  const assignmentsList = assignments ?? [];
+  const soldiersList = soldiers ?? [];
+  const tasksList = tasks ?? [];
+  const settingsData = settings ?? { minBasePresence: 75, totalSoldiers: 10 };
 
   const [manualDialog, setManualDialog] = useState<{
     open: boolean;
@@ -45,14 +63,14 @@ export function ScheduleView() {
     setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
   };
 
-  const requiredSoldiersInBase = Math.ceil((settings.minBasePresence / 100) * settings.totalSoldiers);
-  const activeTasks = tasks.filter(t => t.isActive);
+  const requiredSoldiersInBase = Math.ceil((settingsData.minBasePresence / 100) * settingsData.totalSoldiers);
+  const activeTasks = tasksList.filter(t => t.isActive);
 
   const dayKeys = useMemo(() => new Set(weekDays.map((d) => format(d, 'yyyy-MM-dd'))), [weekDays]);
 
   const weekAssignments = useMemo(() => {
-    return assignments.filter((a) => dayKeys.has(format(asDate(a.startTime), 'yyyy-MM-dd')));
-  }, [assignments, dayKeys]);
+    return assignmentsList.filter((a) => dayKeys.has(format(asDate(a.startTime), 'yyyy-MM-dd')));
+  }, [assignmentsList, dayKeys]);
 
   const assignmentsByTaskDay = useMemo(() => {
     const map = new Map<string, typeof weekAssignments>();
@@ -64,18 +82,43 @@ export function ScheduleView() {
     return map;
   }, [weekAssignments]);
 
-  const soldierById = useMemo(() => new Map(soldiers.map((s) => [s.id, s])), [soldiers]);
-  const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
+  const soldierById = useMemo(() => new Map(soldiersList.map((s) => [s.id, s])), [soldiersList]);
+  const taskById = useMemo(() => new Map(tasksList.map((t) => [t.id, t])), [tasksList]);
 
-  const runAutoScheduling = () => {
+  const runAutoScheduling = async () => {
     const { assignments: next, unfilledSlots } = buildFairWeekSchedule({
       weekStart: currentWeekStart,
-      soldiers,
-      tasks,
-      existingAssignments: assignments,
+      soldiers: soldiersList,
+      tasks: tasksList,
+      existingAssignments: assignmentsList,
     });
 
-    setAssignments(next);
+    // Delete old assignments for the week and create new ones
+    const weekStart = format(currentWeekStart, 'yyyy-MM-dd');
+    const weekEnd = format(addDays(currentWeekStart, 7), 'yyyy-MM-dd');
+
+    // Find assignments to delete (those in the current week)
+    const toDelete = assignmentsList.filter((a) => {
+      const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
+      return dayKey >= weekStart && dayKey < weekEnd;
+    });
+
+    // Delete old assignments
+    for (const assignment of toDelete) {
+      deleteAssignment.mutate(assignment.id);
+    }
+
+    // Create new assignments
+    for (const assignment of next) {
+      createAssignment.mutate({
+        taskId: assignment.taskId,
+        soldierId: assignment.soldierId,
+        role: assignment.role,
+        startTime: assignment.startTime,
+        endTime: assignment.endTime,
+        locked: assignment.locked,
+      });
+    }
 
     toast({
       title: 'שיבוץ אוטומטי הושלם',
@@ -207,7 +250,7 @@ export function ScheduleView() {
         )}
       </div>
 
-      <FairnessHistogram soldiers={soldiers} tasks={tasks} weekAssignments={weekAssignments} />
+      <FairnessHistogram soldiers={soldiersList} tasks={tasksList} weekAssignments={weekAssignments} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-card rounded-xl p-5 shadow-card">
@@ -219,7 +262,7 @@ export function ScheduleView() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">חיילים זמינים</span>
-              <span className="font-medium">{soldiers.length}</span>
+              <span className="font-medium">{soldiersList.length}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">נדרשים במוצב</span>
@@ -240,7 +283,7 @@ export function ScheduleView() {
                   <Badge variant="secondary">{soldier.constraints.length} אילוצים</Badge>
                 </div>
               ))}
-            {soldiers.filter(s => s.constraints.length > 0).length === 0 && (
+            {soldiersList.filter(s => s.constraints.length > 0).length === 0 && (
               <p className="text-sm text-muted-foreground">אין אילוצים פעילים</p>
             )}
           </div>
@@ -249,7 +292,7 @@ export function ScheduleView() {
         <div className="bg-card rounded-xl p-5 shadow-card">
           <h3 className="font-semibold mb-3">סיכום חופשות</h3>
           <div className="space-y-2">
-            {soldiers.slice(0, 4).map(soldier => (
+            {soldiersList.slice(0, 4).map(soldier => (
               <div key={soldier.id} className="flex items-center justify-between text-sm">
                 <span>{soldier.name}</span>
                 <span className="font-medium">
@@ -266,7 +309,7 @@ export function ScheduleView() {
           open={manualDialog.open}
           onOpenChange={(open) => setManualDialog((prev) => ({ ...prev, open }))}
           task={taskById.get(manualDialog.taskId)!}
-          soldiers={soldiers}
+          soldiers={soldiersList}
           existingAssignments={assignmentsByTaskDay.get(`${manualDialog.taskId}__${manualDialog.dayKey}`) ?? []}
           defaultLocked={true}
           onSave={({ slots, locked }) => {
@@ -277,31 +320,38 @@ export function ScheduleView() {
             const end = new Date(start);
             end.setHours(end.getHours() + task.shiftDuration);
 
-            const next = assignments.filter((a) => {
-              if (a.taskId !== manualDialog.taskId) return true;
-              return format(asDate(a.startTime), 'yyyy-MM-dd') !== manualDialog.dayKey;
+            // Delete old assignments for this task and day
+            const toDelete = assignmentsList.filter((a) => {
+              if (a.taskId !== manualDialog.taskId) return false;
+              return format(asDate(a.startTime), 'yyyy-MM-dd') === manualDialog.dayKey;
             });
 
+            for (const assignment of toDelete) {
+              deleteAssignment.mutate(assignment.id);
+            }
+
+            // Create new assignments
             const used = new Set<string>();
-            const created = slots
+            const toCreate = slots
               .filter((s) => !!s.soldierId)
               .filter((s) => {
                 if (!s.soldierId) return false;
                 if (used.has(`${s.role}__${s.soldierId}`)) return false;
                 used.add(`${s.role}__${s.soldierId}`);
                 return true;
-              })
-              .map((s) => ({
-                id: generateId(),
+              });
+
+            for (const slot of toCreate) {
+              createAssignment.mutate({
                 taskId: manualDialog.taskId,
-                soldierId: s.soldierId!,
-                role: s.role,
+                soldierId: slot.soldierId!,
+                role: slot.role,
                 startTime: start,
                 endTime: end,
                 locked,
-              }));
+              });
+            }
 
-            setAssignments([...next, ...created]);
             setManualDialog({ open: false, taskId: '', dayKey: '' });
           }}
         />

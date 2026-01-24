@@ -1,29 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useSchedulingStore } from '@/store/schedulingStore';
-import { useToast } from '@/hooks/use-toast';
+import { useSettings, useUpdateSettings } from '@/hooks/useSettings';
 
 export function SettingsView() {
-  const { settings, updateSettings } = useSchedulingStore();
-  const { toast } = useToast();
-  
-  const [minBasePresence, setMinBasePresence] = useState(settings.minBasePresence);
-  const [totalSoldiers, setTotalSoldiers] = useState(settings.totalSoldiers);
+  const { data: settings, isLoading, error, refetch } = useSettings();
+  const updateSettings = useUpdateSettings();
+
+  const [minBasePresence, setMinBasePresence] = useState(0);
+  const [totalSoldiers, setTotalSoldiers] = useState(0);
+
+  // Update local state when settings are loaded
+  useEffect(() => {
+    if (settings) {
+      setMinBasePresence(settings.minBasePresence);
+      setTotalSoldiers(settings.totalSoldiers);
+    }
+  }, [settings]);
 
   const handleSave = () => {
-    updateSettings({
+    updateSettings.mutate({
       minBasePresence,
       totalSoldiers,
     });
-    
-    toast({
-      title: 'ההגדרות נשמרו',
-      description: 'השינויים יחולו מיידית על המערכת',
-    });
   };
+
+  if (isLoading) {
+    return <div className="p-8 text-center">טוען...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-destructive mb-4">שגיאה בטעינת ההגדרות</p>
+        <Button onClick={() => refetch()}>נסה שוב</Button>
+      </div>
+    );
+  }
 
   const requiredSoldiers = Math.ceil((minBasePresence / 100) * totalSoldiers);
 
@@ -122,9 +137,9 @@ export function SettingsView() {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} className="gap-2">
+        <Button onClick={handleSave} className="gap-2" disabled={updateSettings.isPending}>
           <Save className="w-4 h-4" />
-          שמור הגדרות
+          {updateSettings.isPending ? 'שומר...' : 'שמור הגדרות'}
         </Button>
       </div>
     </div>

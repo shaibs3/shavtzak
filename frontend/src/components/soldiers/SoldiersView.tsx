@@ -2,22 +2,25 @@ import { useState } from 'react';
 import { Plus, Edit2, Trash2, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useSchedulingStore } from '@/store/schedulingStore';
+import { useSoldiers, useCreateSoldier, useUpdateSoldier, useDeleteSoldier } from '@/hooks/useSoldiers';
 import { roleLabels, Soldier } from '@/types/scheduling';
 import { SoldierForm } from './SoldierForm';
 import { ConstraintForm } from './ConstraintForm';
 
 export function SoldiersView() {
-  const { soldiers, addSoldier, updateSoldier, deleteSoldier } = useSchedulingStore();
+  const { data: soldiers, isLoading, error, refetch } = useSoldiers();
+  const createSoldier = useCreateSoldier();
+  const updateSoldier = useUpdateSoldier();
+  const deleteSoldier = useDeleteSoldier();
   const [showForm, setShowForm] = useState(false);
   const [editingSoldier, setEditingSoldier] = useState<Soldier | null>(null);
   const [constraintSoldier, setConstraintSoldier] = useState<Soldier | null>(null);
 
   const handleSubmit = (data: Omit<Soldier, 'id' | 'constraints'>) => {
     if (editingSoldier) {
-      updateSoldier(editingSoldier.id, data);
+      updateSoldier.mutate({ id: editingSoldier.id, data });
     } else {
-      addSoldier({ ...data, constraints: [] });
+      createSoldier.mutate(data);
     }
     setShowForm(false);
     setEditingSoldier(null);
@@ -30,9 +33,24 @@ export function SoldiersView() {
 
   const handleDelete = (id: string) => {
     if (confirm('האם אתה בטוח שברצונך למחוק חייל זה?')) {
-      deleteSoldier(id);
+      deleteSoldier.mutate(id);
     }
   };
+
+  if (isLoading) {
+    return <div className="p-8 text-center">טוען...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-destructive mb-4">שגיאה בטעינת החיילים</p>
+        <Button onClick={() => refetch()}>נסה שוב</Button>
+      </div>
+    );
+  }
+
+  const soldiersList = soldiers ?? [];
 
   return (
     <div className="space-y-6">
@@ -61,7 +79,7 @@ export function SoldiersView() {
               </tr>
             </thead>
             <tbody>
-              {soldiers.map((soldier) => (
+              {soldiersList.map((soldier) => (
                 <tr key={soldier.id} className="border-t border-border hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -124,7 +142,7 @@ export function SoldiersView() {
           </table>
         </div>
 
-        {soldiers.length === 0 && (
+        {soldiersList.length === 0 && (
           <div className="py-12 text-center text-muted-foreground">
             <p>אין חיילים במערכת</p>
             <Button onClick={() => setShowForm(true)} variant="link" className="mt-2">
