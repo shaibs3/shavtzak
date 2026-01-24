@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSchedulingStore } from '@/store/schedulingStore';
+import { useAddConstraint, useRemoveConstraint } from '@/hooks/useSoldiers';
 import { Soldier, Constraint } from '@/types/scheduling';
 import { format } from 'date-fns';
 
@@ -21,7 +21,8 @@ const constraintTypes = {
 };
 
 export function ConstraintForm({ soldier, onClose }: ConstraintFormProps) {
-  const { addConstraint, removeConstraint } = useSchedulingStore();
+  const addConstraint = useAddConstraint();
+  const removeConstraint = useRemoveConstraint();
   const [type, setType] = useState<Constraint['type']>('unavailable');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -29,21 +30,27 @@ export function ConstraintForm({ soldier, onClose }: ConstraintFormProps) {
 
   const handleAdd = () => {
     if (!startDate || !endDate) return;
-    
-    addConstraint(soldier.id, {
-      type,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      reason: reason.trim() || undefined,
+
+    addConstraint.mutate({
+      soldierId: soldier.id,
+      data: {
+        type,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        reason: reason.trim() || undefined,
+      },
     });
-    
+
     setStartDate('');
     setEndDate('');
     setReason('');
   };
 
   const handleRemove = (constraintId: string) => {
-    removeConstraint(soldier.id, constraintId);
+    removeConstraint.mutate({
+      soldierId: soldier.id,
+      constraintId,
+    });
   };
 
   return (
