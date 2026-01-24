@@ -32,6 +32,12 @@ export function ScheduleView() {
     startOfWeek(new Date(), { weekStartsOn: 0 })
   );
 
+  const [manualDialog, setManualDialog] = useState<{
+    open: boolean;
+    taskId: string;
+    dayKey: string;
+  }>({ open: false, taskId: '', dayKey: '' });
+
   const isLoading = assignmentsLoading || soldiersLoading || tasksLoading || settingsLoading;
 
   if (isLoading) {
@@ -42,12 +48,6 @@ export function ScheduleView() {
   const soldiersList = soldiers ?? [];
   const tasksList = tasks ?? [];
   const settingsData = settings ?? { minBasePresence: 75, totalSoldiers: 10 };
-
-  const [manualDialog, setManualDialog] = useState<{
-    open: boolean;
-    taskId: string;
-    dayKey: string;
-  }>({ open: false, taskId: '', dayKey: '' });
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
 
