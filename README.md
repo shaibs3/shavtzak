@@ -35,8 +35,37 @@ Shavtzak (שבצ״ק - Scheduling) is a comprehensive military unit scheduling s
 - **Node.js** 18+ and npm
 - **PostgreSQL** 15+ (or use Docker Compose)
 - **Git**
+- **Make** (optional, for simplified commands)
 
-### Option 1: Docker Compose (Recommended)
+### Option 1: Using Makefile (Easiest)
+
+```bash
+# 1. Clone and install
+git clone <repository-url>
+cd shavtzak-integration
+make install          # Installs all dependencies
+
+# 2. Setup database
+make db-up            # Start PostgreSQL
+make seed             # Seed with sample data
+
+# 3. Start everything
+make dev              # Starts database + backend + frontend
+```
+
+**Available Commands:**
+```bash
+make help             # Show all available commands
+make dev              # Start complete development environment
+make backend          # Start backend only
+make frontend         # Start frontend only
+make stop             # Stop all services
+make db-reset         # Reset database (destroys data)
+make test             # Run backend tests
+make test-e2e         # Run E2E tests
+```
+
+### Option 2: Docker Compose (Manual)
 
 ```bash
 # 1. Clone the repository
@@ -62,7 +91,7 @@ cd ../frontend
 npm run dev  # Runs on http://localhost:5173
 ```
 
-### Option 2: Local PostgreSQL
+### Option 3: Local PostgreSQL (Without Docker)
 
 ```bash
 # 1. Create database
@@ -78,7 +107,11 @@ DATABASE_PASSWORD=postgres
 DATABASE_NAME=shabtzaq
 EOF
 
-# 3. Continue with steps 3-6 above
+# 3. Install and run
+make install          # Or manually: cd backend && npm install && cd ../frontend && npm install
+cd backend && npm run seed
+make backend          # In terminal 1
+make frontend         # In terminal 2
 ```
 
 ### Access the Application
@@ -256,6 +289,7 @@ shavtzak-integration/
 │       └── 2026-01-23-frontend-backend-integration-implementation.md
 │
 ├── docker-compose.yml          # PostgreSQL container setup
+├── Makefile                    # Development automation commands
 └── README.md                   # This file
 ```
 
