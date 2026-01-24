@@ -3,20 +3,23 @@ import { Plus, Edit2, Trash2, Clock, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { useSchedulingStore } from '@/store/schedulingStore';
+import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { roleLabels, Task } from '@/types/scheduling';
 import { TaskForm } from './TaskForm';
 
 export function TasksView() {
-  const { tasks, addTask, updateTask, deleteTask } = useSchedulingStore();
+  const { data: tasks, isLoading, error, refetch } = useTasks();
+  const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const handleSubmit = (data: Omit<Task, 'id'>) => {
     if (editingTask) {
-      updateTask(editingTask.id, data);
+      updateTask.mutate({ id: editingTask.id, data });
     } else {
-      addTask(data);
+      createTask.mutate(data);
     }
     setShowForm(false);
     setEditingTask(null);
@@ -29,13 +32,28 @@ export function TasksView() {
 
   const handleDelete = (id: string) => {
     if (confirm('האם אתה בטוח שברצונך למחוק משימה זו?')) {
-      deleteTask(id);
+      deleteTask.mutate(id);
     }
   };
 
   const handleToggleActive = (task: Task) => {
-    updateTask(task.id, { isActive: !task.isActive });
+    updateTask.mutate({ id: task.id, data: { isActive: !task.isActive } });
   };
+
+  if (isLoading) {
+    return <div className="p-8 text-center">טוען...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-destructive mb-4">שגיאה בטעינת המשימות</p>
+        <Button onClick={() => refetch()}>נסה שוב</Button>
+      </div>
+    );
+  }
+
+  const tasksList = tasks ?? [];
 
   return (
     <div className="space-y-6">
@@ -51,7 +69,7 @@ export function TasksView() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tasks.map((task) => (
+        {tasksList.map((task) => (
           <div
             key={task.id}
             className={`bg-card rounded-xl p-5 shadow-card transition-all ${
@@ -124,7 +142,7 @@ export function TasksView() {
         ))}
       </div>
 
-      {tasks.length === 0 && (
+      {tasksList.length === 0 && (
         <div className="bg-card rounded-xl py-12 text-center text-muted-foreground shadow-card">
           <p>אין משימות במערכת</p>
           <Button onClick={() => setShowForm(true)} variant="link" className="mt-2">
