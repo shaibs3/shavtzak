@@ -32,41 +32,30 @@ export function ScheduleView() {
     startOfWeek(new Date(), { weekStartsOn: 0 })
   );
 
-  const isLoading = assignmentsLoading || soldiersLoading || tasksLoading || settingsLoading;
-
-  if (isLoading) {
-    return <div className="p-8 text-center">טוען...</div>;
-  }
-
-  const assignmentsList = assignments ?? [];
-  const soldiersList = soldiers ?? [];
-  const tasksList = tasks ?? [];
-  const settingsData = settings ?? { minBasePresence: 75, totalSoldiers: 10 };
-
   const [manualDialog, setManualDialog] = useState<{
     open: boolean;
     taskId: string;
     dayKey: string;
   }>({ open: false, taskId: '', dayKey: '' });
 
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+  // Compute all derived values with fallbacks BEFORE conditional return
+  const assignmentsList = assignments ?? [];
+  const soldiersList = soldiers ?? [];
+  const tasksList = tasks ?? [];
+  const settingsData = settings ?? { minBasePresence: 75, totalSoldiers: 10 };
 
-  const goToPreviousWeek = () => {
-    setCurrentWeekStart(prev => addDays(prev, -7));
-  };
-
-  const goToNextWeek = () => {
-    setCurrentWeekStart(prev => addDays(prev, 7));
-  };
-
-  const goToToday = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
-  };
+  const weekDays = useMemo(() =>
+    Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i)),
+    [currentWeekStart]
+  );
 
   const requiredSoldiersInBase = Math.ceil((settingsData.minBasePresence / 100) * settingsData.totalSoldiers);
   const activeTasks = tasksList.filter(t => t.isActive);
 
-  const dayKeys = useMemo(() => new Set(weekDays.map((d) => format(d, 'yyyy-MM-dd'))), [weekDays]);
+  const dayKeys = useMemo(() =>
+    new Set(weekDays.map((d) => format(d, 'yyyy-MM-dd'))),
+    [weekDays]
+  );
 
   const weekAssignments = useMemo(() => {
     return assignmentsList.filter((a) => dayKeys.has(format(asDate(a.startTime), 'yyyy-MM-dd')));
@@ -84,6 +73,25 @@ export function ScheduleView() {
 
   const soldierById = useMemo(() => new Map(soldiersList.map((s) => [s.id, s])), [soldiersList]);
   const taskById = useMemo(() => new Map(tasksList.map((t) => [t.id, t])), [tasksList]);
+
+  const isLoading = assignmentsLoading || soldiersLoading || tasksLoading || settingsLoading;
+
+  // Navigation functions
+  const goToPreviousWeek = () => {
+    setCurrentWeekStart(prev => addDays(prev, -7));
+  };
+
+  const goToNextWeek = () => {
+    setCurrentWeekStart(prev => addDays(prev, 7));
+  };
+
+  const goToToday = () => {
+    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
+  };
+
+  if (isLoading) {
+    return <div className="p-8 text-center">טוען...</div>;
+  }
 
   const runAutoScheduling = async () => {
     const { assignments: next, unfilledSlots } = buildFairWeekSchedule({
