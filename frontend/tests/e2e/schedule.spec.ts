@@ -27,20 +27,30 @@ test.describe('Schedule and Assignments', () => {
     // Wait for schedule to load
     await page.waitForSelector('text=לוח שיבוצים');
 
+    // Get current week date to verify navigation works
+    const currentWeekText = await page.locator('text=/\\d+\\/\\d+/').first().textContent();
+
     // Click next week (ChevronLeft icon)
     const nextButton = page.locator('button').filter({ has: page.locator('svg.lucide-chevron-left') });
     await nextButton.click();
 
     // Wait for content to update
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Click previous week (ChevronRight icon)
     const prevButton = page.locator('button').filter({ has: page.locator('svg.lucide-chevron-right') });
     await prevButton.click();
 
+    // Wait for navigation to complete
+    await page.waitForTimeout(1000);
+
     // Click today to go back to current week
     await page.click('button:has-text("היום")');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
+
+    // Verify we're back (date should match original)
+    const finalWeekText = await page.locator('text=/\\d+\\/\\d+/').first().textContent();
+    expect(finalWeekText).toBe(currentWeekText);
   });
 
   test('should run auto-scheduling', async ({ page }) => {
