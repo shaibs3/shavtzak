@@ -31,8 +31,12 @@ export class AssignmentsService {
     }
 
     if (settings.operationalEndDate) {
+      // For end date, include the entire day by setting time to end of day
+      const endOfDay = new Date(settings.operationalEndDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
       query.andWhere('assignment.endTime <= :endDate', {
-        endDate: settings.operationalEndDate,
+        endDate: endOfDay,
       });
     }
 

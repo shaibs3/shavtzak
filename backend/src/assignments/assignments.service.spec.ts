@@ -67,6 +67,10 @@ describe('AssignmentsService - Operational Period Filtering', () => {
 
       await service.findAll();
 
+      // Expected end date should be adjusted to end of day
+      const expectedEndDate = new Date('2026-05-31');
+      expectedEndDate.setHours(23, 59, 59, 999);
+
       expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('assignment');
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'assignment.startTime >= :startDate',
@@ -74,7 +78,7 @@ describe('AssignmentsService - Operational Period Filtering', () => {
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'assignment.endTime <= :endDate',
-        { endDate: mockSettings.operationalEndDate },
+        { endDate: expectedEndDate },
       );
     });
 
