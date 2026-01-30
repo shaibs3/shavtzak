@@ -16,8 +16,8 @@ export class AssignmentsService {
 
   async create(createAssignmentDto: CreateAssignmentDto): Promise<Assignment> {
     await this.validateOperationalPeriod(
-      createAssignmentDto.startTime,
-      createAssignmentDto.endTime,
+      new Date(createAssignmentDto.startTime),
+      new Date(createAssignmentDto.endTime),
     );
     const assignment = this.assignmentsRepository.create(createAssignmentDto);
     return this.assignmentsRepository.save(assignment);
@@ -61,8 +61,12 @@ export class AssignmentsService {
     // Validate operational period if dates are being updated
     if (updateAssignmentDto.startTime || updateAssignmentDto.endTime) {
       const existing = await this.findOne(id);
-      const newStartTime = updateAssignmentDto.startTime || existing.startTime;
-      const newEndTime = updateAssignmentDto.endTime || existing.endTime;
+      const newStartTime = updateAssignmentDto.startTime
+        ? new Date(updateAssignmentDto.startTime)
+        : existing.startTime;
+      const newEndTime = updateAssignmentDto.endTime
+        ? new Date(updateAssignmentDto.endTime)
+        : existing.endTime;
       await this.validateOperationalPeriod(newStartTime, newEndTime);
     }
 
