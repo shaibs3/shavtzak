@@ -11,12 +11,16 @@ export function SettingsView() {
 
   const [minBasePresence, setMinBasePresence] = useState(0);
   const [totalSoldiers, setTotalSoldiers] = useState(0);
+  const [operationalStartDate, setOperationalStartDate] = useState('');
+  const [operationalEndDate, setOperationalEndDate] = useState('');
 
   // Update local state when settings are loaded
   useEffect(() => {
     if (settings) {
       setMinBasePresence(settings.minBasePresence);
       setTotalSoldiers(settings.totalSoldiers);
+      setOperationalStartDate(settings.operationalStartDate || '');
+      setOperationalEndDate(settings.operationalEndDate || '');
     }
   }, [settings]);
 
@@ -24,6 +28,8 @@ export function SettingsView() {
     updateSettings.mutate({
       minBasePresence,
       totalSoldiers,
+      operationalStartDate: operationalStartDate || undefined,
+      operationalEndDate: operationalEndDate || undefined,
     });
   };
 
@@ -132,6 +138,47 @@ export function SettingsView() {
                 ניתן לשנות בנפרד לכל משימה
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-xl p-6 shadow-card">
+        <h3 className="text-lg font-semibold mb-4">תקופת תעסוקה מבצעית</h3>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="operationalStartDate">תאריך התחלה</Label>
+            <Input
+              id="operationalStartDate"
+              type="date"
+              value={operationalStartDate}
+              onChange={(e) => setOperationalStartDate(e.target.value)}
+              className="mt-1.5"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              תאריך התחלת התקופה המבצעית
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="operationalEndDate">תאריך סיום</Label>
+            <Input
+              id="operationalEndDate"
+              type="date"
+              value={operationalEndDate}
+              onChange={(e) => setOperationalEndDate(e.target.value)}
+              className="mt-1.5"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              תאריך סיום התקופה המבצעית
+            </p>
+          </div>
+
+          <div className="bg-muted/50 rounded-lg p-4">
+            <p className="text-xs text-muted-foreground">
+              תקופת התעסוקה המבצעית משמשת לחישובי תכנון ואופטימיזציה של השיבוצים.
+              השאר ריק לתקופה בלתי מוגבלת.
+            </p>
           </div>
         </div>
       </div>
