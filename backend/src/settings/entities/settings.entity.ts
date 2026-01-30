@@ -11,6 +11,12 @@ export class Settings {
   @Column({ type: 'int' })
   totalSoldiers: number;
 
+  @Column({ type: 'date', nullable: true })
+  operationalStartDate: Date | null;
+
+  @Column({ type: 'date', nullable: true })
+  operationalEndDate: Date | null;
+
   @UpdateDateColumn()
   updatedAt: Date;
 }
