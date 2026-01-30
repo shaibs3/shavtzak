@@ -2,10 +2,18 @@ import { useMemo, useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, Calendar, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
 import { useAssignments, useCreateAssignment, useDeleteAssignment } from '@/hooks/useAssignments';
 import { useSoldiers } from '@/hooks/useSoldiers';
 import { useTasks } from '@/hooks/useTasks';
 import { useSettings } from '@/hooks/useSettings';
+import { usePlatoons } from '@/hooks/usePlatoons';
 import { roleLabels } from '@/types/scheduling';
 import { format, addDays, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -26,6 +34,7 @@ export function ScheduleView() {
   const { data: soldiers, isLoading: soldiersLoading } = useSoldiers();
   const { data: tasks, isLoading: tasksLoading } = useTasks();
   const { data: settings, isLoading: settingsLoading } = useSettings();
+  const { data: platoons = [] } = usePlatoons();
   const createAssignment = useCreateAssignment();
   const deleteAssignment = useDeleteAssignment();
   const navigate = useNavigate();
@@ -33,6 +42,8 @@ export function ScheduleView() {
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 0 })
   );
+
+  const [selectedPlatoonFilter, setSelectedPlatoonFilter] = useState<string[]>([]);
 
   const [manualDialog, setManualDialog] = useState<{
     open: boolean;
@@ -64,17 +75,36 @@ export function ScheduleView() {
   }, [assignmentsList, dayKeys]);
 
   const assignmentsByTaskDay = useMemo(() => {
-    const map = new Map<string, typeof weekAssignments>();
-    for (const a of weekAssignments) {
+    const map = new Map<string, typeof displayedAssignments>();
+    for (const a of displayedAssignments) {
       const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
       const key = `${a.taskId}__${dayKey}`;
       map.set(key, [...(map.get(key) ?? []), a]);
     }
     return map;
-  }, [weekAssignments]);
+  }, [displayedAssignments]);
 
   const soldierById = useMemo(() => new Map(soldiersList.map((s) => [s.id, s])), [soldiersList]);
   const taskById = useMemo(() => new Map(tasksList.map((t) => [t.id, t])), [tasksList]);
+  const platoonById = useMemo(
+    () => new Map(platoons.map((p) => [p.id, p])),
+    [platoons]
+  );
+
+  const displayedAssignments = useMemo(() => {
+    if (selectedPlatoonFilter.length === 0) return weekAssignments;
+
+    return weekAssignments.filter((a) => {
+      const soldier = soldierById.get(a.soldierId);
+      if (!soldier) return false;
+
+      // Check if soldier's platoon is in filter, or if "none" is selected and soldier has no platoon
+      if (selectedPlatoonFilter.includes('none') && !soldier.platoonId) return true;
+      if (soldier.platoonId && selectedPlatoonFilter.includes(soldier.platoonId)) return true;
+
+      return false;
+    });
+  }, [weekAssignments, selectedPlatoonFilter, soldierById]);
 
   const isLoading = assignmentsLoading || soldiersLoading || tasksLoading || settingsLoading;
 
@@ -246,6 +276,35 @@ export function ScheduleView() {
           <p className="text-muted-foreground mt-1">תצוגת שבוע ושיבוץ משימות</p>
         </div>
         <div className="flex items-center gap-2">
+          <Select
+            value={selectedPlatoonFilter[0] || 'all'}
+            onValueChange={(v) => {
+              if (v === 'all') {
+                setSelectedPlatoonFilter([]);
+              } else {
+                setSelectedPlatoonFilter([v]);
+              }
+            }}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="סנן לפי מחלקה" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">כל המחלקות</SelectItem>
+              {platoons.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: p.color }}
+                    />
+                    <span>{p.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+              <SelectItem value="none">ללא מחלקה</SelectItem>
+            </SelectContent>
+          </Select>
           <Button variant="default" size="sm" onClick={runAutoScheduling} className="gap-2">
             <Sparkles className="w-4 h-4" />
             שיבוץ אוטומטי
@@ -336,9 +395,25 @@ export function ScheduleView() {
                           key={a.id}
                           className="flex items-center justify-between rounded-md border border-border bg-background/50 px-2 py-1 text-xs"
                         >
-                          <span className="truncate">
-                            {soldierById.get(a.soldierId)?.name ?? 'חייל'} · {roleLabels[a.role]}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className="truncate">
+                              {soldierById.get(a.soldierId)?.name ?? 'חייל'} · {roleLabels[a.role]}
+                            </span>
+                            {(() => {
+                              const soldier = soldierById.get(a.soldierId);
+                              const platoon = soldier?.platoonId ? platoonById.get(soldier.platoonId) : null;
+                              if (platoon) {
+                                return (
+                                  <div
+                                    className="w-2 h-2 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: platoon.color }}
+                                    title={platoon.name}
+                                  />
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
                           {!!a.locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
                         </div>
                       ))}
@@ -361,7 +436,7 @@ export function ScheduleView() {
 
       <FairnessHistogram soldiers={soldiersList} tasks={tasksList} weekAssignments={weekAssignments} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-card rounded-xl p-5 shadow-card">
           <h3 className="font-semibold mb-3">סטטיסטיקות שבועיות</h3>
           <div className="space-y-2 text-sm">
@@ -377,6 +452,49 @@ export function ScheduleView() {
               <span className="text-muted-foreground">נדרשים במוצב</span>
               <span className="font-medium">{requiredSoldiersInBase}</span>
             </div>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-xl p-5 shadow-card">
+          <h3 className="font-semibold mb-3">התפלגות לפי מחלקות</h3>
+          <div className="space-y-2">
+            {platoons.map((platoon) => {
+              const count = displayedAssignments.filter((a) => {
+                const soldier = soldierById.get(a.soldierId);
+                return soldier?.platoonId === platoon.id;
+              }).length;
+
+              return (
+                <div key={platoon.id} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: platoon.color }}
+                    />
+                    <span>{platoon.name}</span>
+                  </div>
+                  <span className="font-medium">{count} שיבוצים</span>
+                </div>
+              );
+            })}
+            {(() => {
+              const noneCount = displayedAssignments.filter((a) => {
+                const soldier = soldierById.get(a.soldierId);
+                return !soldier?.platoonId;
+              }).length;
+              if (noneCount > 0) {
+                return (
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-muted" />
+                      <span>ללא מחלקה</span>
+                    </div>
+                    <span className="font-medium">{noneCount} שיבוצים</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 
