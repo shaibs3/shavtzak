@@ -6,6 +6,8 @@ export interface Soldier {
   constraints: Constraint[];
   maxVacationDays: number;
   usedVacationDays: number;
+  platoonId: string | null;
+  platoon?: Platoon;
 }
 
 export interface Constraint {
@@ -67,8 +69,22 @@ export interface Settings {
   updatedAt: string;
 }
 
+export interface Platoon {
+  id: string;
+  name: string;
+  commander: string | null;
+  color: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  soldiers?: Soldier[];
+}
+
+export type CreatePlatoonDto = Omit<Platoon, 'id' | 'color' | 'createdAt' | 'updatedAt' | 'soldiers'>;
+export type UpdatePlatoonDto = Partial<CreatePlatoonDto>;
+
 // DTOs for API requests
-export type CreateSoldierDto = Omit<Soldier, 'id' | 'constraints'>;
+export type CreateSoldierDto = Omit<Soldier, 'id' | 'constraints' | 'platoon'>;
 export type UpdateSoldierDto = Partial<CreateSoldierDto>;
 
 export type CreateConstraintDto = Omit<Constraint, 'id'>;
