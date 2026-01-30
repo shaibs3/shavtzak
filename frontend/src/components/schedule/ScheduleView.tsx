@@ -7,9 +7,10 @@ import { useSoldiers } from '@/hooks/useSoldiers';
 import { useTasks } from '@/hooks/useTasks';
 import { useSettings } from '@/hooks/useSettings';
 import { roleLabels } from '@/types/scheduling';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { format, addDays, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { buildFairWeekSchedule } from '@/lib/scheduling/fairScheduling';
 import { AssignDialog } from '@/components/schedule/AssignDialog';
 import { FairnessHistogram } from '@/components/schedule/FairnessHistogram';
@@ -27,6 +28,7 @@ export function ScheduleView() {
   const { data: settings, isLoading: settingsLoading } = useSettings();
   const createAssignment = useCreateAssignment();
   const deleteAssignment = useDeleteAssignment();
+  const navigate = useNavigate();
 
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 0 })
@@ -76,6 +78,35 @@ export function ScheduleView() {
 
   const isLoading = assignmentsLoading || soldiersLoading || tasksLoading || settingsLoading;
 
+  // Check if current week is within operational period
+  const isWeekInOperationalPeriod = useMemo(() => {
+    if (!settings?.operationalStartDate || !settings?.operationalEndDate) {
+      return false;
+    }
+
+    const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
+    const opStart = new Date(settings.operationalStartDate);
+    const opEnd = new Date(settings.operationalEndDate);
+
+    return currentWeekStart <= opEnd && weekEnd >= opStart;
+  }, [currentWeekStart, settings]);
+
+  // Check if can navigate to previous week
+  const canNavigatePrevious = useMemo(() => {
+    if (!settings?.operationalStartDate) return false;
+    const previousWeek = subWeeks(currentWeekStart, 1);
+    const opStart = new Date(settings.operationalStartDate);
+    return endOfWeek(previousWeek, { weekStartsOn: 0 }) >= opStart;
+  }, [currentWeekStart, settings]);
+
+  // Check if can navigate to next week
+  const canNavigateNext = useMemo(() => {
+    if (!settings?.operationalEndDate) return false;
+    const nextWeek = addWeeks(currentWeekStart, 1);
+    const opEnd = new Date(settings.operationalEndDate);
+    return startOfWeek(nextWeek, { weekStartsOn: 0 }) <= opEnd;
+  }, [currentWeekStart, settings]);
+
   // Navigation functions
   const goToPreviousWeek = () => {
     setCurrentWeekStart(prev => addDays(prev, -7));
@@ -91,6 +122,23 @@ export function ScheduleView() {
 
   if (isLoading) {
     return <div className="p-8 text-center">טוען...</div>;
+  }
+
+  // Show prompt if operational period is not set
+  if (!settings?.operationalStartDate || !settings?.operationalEndDate) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">לא הוגדרה תקופת תעסוקה מבצעית</h3>
+          <p className="text-muted-foreground mb-4">
+            יש להגדיר תקופת תעסוקה בהגדרות לפני תחילת השיבוץ
+          </p>
+          <Button onClick={() => navigate('/settings')}>
+            עבור להגדרות
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const runAutoScheduling = async () => {
@@ -152,10 +200,10 @@ export function ScheduleView() {
           <Button variant="outline" size="sm" onClick={goToToday}>
             היום
           </Button>
-          <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
+          <Button variant="outline" size="icon" onClick={goToPreviousWeek} disabled={!canNavigatePrevious}>
             <ChevronRight className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={goToNextWeek}>
+          <Button variant="outline" size="icon" onClick={goToNextWeek} disabled={!canNavigateNext}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
         </div>
