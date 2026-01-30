@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Assignment } from './entities/assignment.entity';
@@ -15,6 +15,10 @@ export class AssignmentsService {
   ) {}
 
   async create(createAssignmentDto: CreateAssignmentDto): Promise<Assignment> {
+    await this.validateOperationalPeriod(
+      createAssignmentDto.startTime,
+      createAssignmentDto.endTime,
+    );
     const assignment = this.assignmentsRepository.create(createAssignmentDto);
     return this.assignmentsRepository.save(assignment);
   }
@@ -53,6 +57,15 @@ export class AssignmentsService {
 
   async update(id: string, updateAssignmentDto: UpdateAssignmentDto): Promise<Assignment> {
     await this.findOne(id); // Check if exists
+
+    // Validate operational period if dates are being updated
+    if (updateAssignmentDto.startTime || updateAssignmentDto.endTime) {
+      const existing = await this.findOne(id);
+      const newStartTime = updateAssignmentDto.startTime || existing.startTime;
+      const newEndTime = updateAssignmentDto.endTime || existing.endTime;
+      await this.validateOperationalPeriod(newStartTime, newEndTime);
+    }
+
     await this.assignmentsRepository.update(id, updateAssignmentDto);
     return this.findOne(id);
   }
@@ -60,5 +73,32 @@ export class AssignmentsService {
   async remove(id: string): Promise<void> {
     const assignment = await this.findOne(id);
     await this.assignmentsRepository.remove(assignment);
+  }
+
+  private async validateOperationalPeriod(
+    startTime: Date,
+    endTime: Date,
+  ): Promise<void> {
+    const settings = await this.settingsService.get();
+
+    // If no operational period is set, allow all assignments
+    if (!settings.operationalStartDate || !settings.operationalEndDate) {
+      return;
+    }
+
+    const operationalStart = new Date(settings.operationalStartDate);
+    const operationalEnd = new Date(settings.operationalEndDate);
+    // Include the entire end day
+    operationalEnd.setHours(23, 59, 59, 999);
+
+    const assignmentStart = new Date(startTime);
+    const assignmentEnd = new Date(endTime);
+
+    // Check if assignment is completely within operational period
+    if (assignmentStart < operationalStart || assignmentEnd > operationalEnd) {
+      throw new BadRequestException(
+        `Assignment must be within the operational period (${settings.operationalStartDate} to ${settings.operationalEndDate})`,
+      );
+    }
   }
 }

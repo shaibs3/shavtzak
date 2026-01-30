@@ -101,4 +101,90 @@ describe('AssignmentsService - Operational Period Filtering', () => {
       expect(mockQueryBuilder.andWhere).not.toHaveBeenCalled();
     });
   });
+
+  describe('create with operational period validation', () => {
+    it('should allow creating assignment within operational period', async () => {
+      const mockSettings = {
+        id: 'test-id',
+        minBasePresence: 75,
+        totalSoldiers: 20,
+        operationalStartDate: new Date('2026-02-01'),
+        operationalEndDate: new Date('2026-05-31'),
+        updatedAt: new Date(),
+      };
+
+      const createDto = {
+        taskId: 'task-1',
+        soldierId: 'soldier-1',
+        role: 'Guard',
+        startTime: new Date('2026-02-15T08:00:00Z'),
+        endTime: new Date('2026-02-15T16:00:00Z'),
+        locked: false,
+      };
+
+      mockSettingsService.get.mockResolvedValue(mockSettings);
+      mockRepository.create.mockReturnValue(createDto);
+      mockRepository.save.mockResolvedValue({ ...createDto, id: 'new-id' });
+
+      const result = await service.create(createDto);
+
+      expect(result).toBeDefined();
+      expect(mockRepository.save).toHaveBeenCalled();
+    });
+
+    it('should reject creating assignment outside operational period', async () => {
+      const mockSettings = {
+        id: 'test-id',
+        minBasePresence: 75,
+        totalSoldiers: 20,
+        operationalStartDate: new Date('2026-02-01'),
+        operationalEndDate: new Date('2026-05-31'),
+        updatedAt: new Date(),
+      };
+
+      const createDto = {
+        taskId: 'task-1',
+        soldierId: 'soldier-1',
+        role: 'Guard',
+        startTime: new Date('2026-06-15T08:00:00Z'), // Outside period
+        endTime: new Date('2026-06-15T16:00:00Z'),
+        locked: false,
+      };
+
+      mockSettingsService.get.mockResolvedValue(mockSettings);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        'Assignment must be within the operational period',
+      );
+    });
+
+    it('should allow creating assignment when no operational period set', async () => {
+      const mockSettings = {
+        id: 'test-id',
+        minBasePresence: 75,
+        totalSoldiers: 20,
+        operationalStartDate: null,
+        operationalEndDate: null,
+        updatedAt: new Date(),
+      };
+
+      const createDto = {
+        taskId: 'task-1',
+        soldierId: 'soldier-1',
+        role: 'Guard',
+        startTime: new Date('2026-06-15T08:00:00Z'),
+        endTime: new Date('2026-06-15T16:00:00Z'),
+        locked: false,
+      };
+
+      mockSettingsService.get.mockResolvedValue(mockSettings);
+      mockRepository.create.mockReturnValue(createDto);
+      mockRepository.save.mockResolvedValue({ ...createDto, id: 'new-id' });
+
+      const result = await service.create(createDto);
+
+      expect(result).toBeDefined();
+      expect(mockRepository.save).toHaveBeenCalled();
+    });
+  });
 });
