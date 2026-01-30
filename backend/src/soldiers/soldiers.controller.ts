@@ -14,6 +14,7 @@ import { SoldiersService } from './soldiers.service';
 import { CreateSoldierDto } from './dto/create-soldier.dto';
 import { UpdateSoldierDto } from './dto/update-soldier.dto';
 import { CreateConstraintDto } from './dto/create-constraint.dto';
+import { BulkUpdateSoldiersDto } from './dto/bulk-update-soldiers.dto';
 
 @ApiTags('soldiers')
 @Controller('soldiers')
@@ -80,5 +81,15 @@ export class SoldiersController {
     @Param('constraintId') constraintId: string,
   ) {
     return this.soldiersService.removeConstraint(id, constraintId);
+  }
+
+  @Patch('bulk-update')
+  @ApiOperation({ summary: 'Bulk update soldiers platoon assignment' })
+  @ApiResponse({ status: 200, description: 'Soldiers updated successfully' })
+  bulkUpdate(@Body() bulkUpdateDto: BulkUpdateSoldiersDto) {
+    return this.soldiersService.bulkUpdate(
+      bulkUpdateDto.soldierIds,
+      bulkUpdateDto.platoonId ?? null
+    );
   }
 }

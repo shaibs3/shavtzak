@@ -4,10 +4,11 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Platoon } from './entities/platoon.entity';
 import { CreatePlatoonDto } from './dto/create-platoon.dto';
 import { UpdatePlatoonDto } from './dto/update-platoon.dto';
+import { Soldier } from '../soldiers/entities/soldier.entity';
 
 // 10-color palette for platoons
 const PLATOON_COLORS = [
@@ -28,6 +29,8 @@ export class PlatoonsService {
   constructor(
     @InjectRepository(Platoon)
     private platoonsRepository: Repository<Platoon>,
+    @InjectRepository(Soldier)
+    private soldiersRepository: Repository<Soldier>,
   ) {}
 
   /**
@@ -89,5 +92,31 @@ export class PlatoonsService {
     }
 
     await this.platoonsRepository.remove(platoon);
+  }
+
+  async autoAssign(platoonIds: string[]): Promise<{ assignedCount: number }> {
+    // Validate all platoons exist
+    const platoons = await Promise.all(
+      platoonIds.map(id => this.findOne(id))
+    );
+
+    // Get all soldiers without platoon
+    const soldiers = await this.soldiersRepository.find({
+      where: { platoonId: IsNull() },
+    });
+
+    if (soldiers.length === 0) {
+      return { assignedCount: 0 };
+    }
+
+    // Distribute round-robin
+    for (let i = 0; i < soldiers.length; i++) {
+      const platoonIndex = i % platoonIds.length;
+      soldiers[i].platoonId = platoonIds[platoonIndex];
+    }
+
+    await this.soldiersRepository.save(soldiers);
+
+    return { assignedCount: soldiers.length };
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Soldier } from './entities/soldier.entity';
 import { Constraint } from './entities/constraint.entity';
 import { CreateSoldierDto } from './dto/create-soldier.dto';
@@ -74,5 +74,14 @@ export class SoldiersService {
     }
 
     await this.constraintsRepository.remove(constraint);
+  }
+
+  async bulkUpdate(soldierIds: string[], platoonId: string | null): Promise<{ updatedCount: number }> {
+    const result = await this.soldiersRepository.update(
+      { id: In(soldierIds) },
+      { platoonId: platoonId }
+    );
+
+    return { updatedCount: result.affected || 0 };
   }
 }

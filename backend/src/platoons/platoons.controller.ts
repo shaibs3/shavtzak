@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PlatoonsService } from './platoons.service';
 import { CreatePlatoonDto } from './dto/create-platoon.dto';
 import { UpdatePlatoonDto } from './dto/update-platoon.dto';
+import { AutoAssignDto } from './dto/auto-assign.dto';
 
 @ApiTags('platoons')
 @Controller('platoons')
@@ -61,5 +62,12 @@ export class PlatoonsController {
   })
   remove(@Param('id') id: string) {
     return this.platoonsService.remove(id);
+  }
+
+  @Post('auto-assign')
+  @ApiOperation({ summary: 'Auto-assign soldiers without platoon' })
+  @ApiResponse({ status: 200, description: 'Soldiers assigned successfully' })
+  autoAssign(@Body() autoAssignDto: AutoAssignDto) {
+    return this.platoonsService.autoAssign(autoAssignDto.platoonIds);
   }
 }
