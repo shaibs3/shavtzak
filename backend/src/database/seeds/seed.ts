@@ -193,6 +193,8 @@ export async function seed(dataSource: DataSource) {
   const settings = settingsRepo.create({
     minBasePresence: 75,
     totalSoldiers: 70,
+    operationalStartDate: new Date('2026-02-01'),
+    operationalEndDate: new Date('2026-05-31'),
   });
   await settingsRepo.save(settings);
 
