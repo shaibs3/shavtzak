@@ -58,6 +58,15 @@ export interface ScheduleSettings {
   totalSoldiers: number;
 }
 
+export interface Settings {
+  id: string;
+  minBasePresence: number;
+  totalSoldiers: number;
+  operationalStartDate: string | null;
+  operationalEndDate: string | null;
+  updatedAt: string;
+}
+
 // DTOs for API requests
 export type CreateSoldierDto = Omit<Soldier, 'id' | 'constraints'>;
 export type UpdateSoldierDto = Partial<CreateSoldierDto>;
