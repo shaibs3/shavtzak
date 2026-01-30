@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Edit2, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,8 +16,10 @@ import {
   useDeletePlatoon,
   useBulkUpdateSoldiers,
 } from '@/hooks/usePlatoons';
+import { useSoldiers } from '@/hooks/useSoldiers';
 import { PlatoonForm } from './PlatoonForm';
 import { DeletePlatoonDialog } from './DeletePlatoonDialog';
+import { AutoAssignPrompt } from './AutoAssignPrompt';
 import { toast } from '@/hooks/use-toast';
 
 interface PlatoonManagementDialogProps {
@@ -27,6 +29,7 @@ interface PlatoonManagementDialogProps {
 
 export function PlatoonManagementDialog({ open, onOpenChange }: PlatoonManagementDialogProps) {
   const { data: platoons = [] } = usePlatoons();
+  const { data: soldiers = [] } = useSoldiers();
   const createPlatoon = useCreatePlatoon();
   const updatePlatoon = useUpdatePlatoon();
   const deletePlatoon = useDeletePlatoon();
@@ -39,6 +42,19 @@ export function PlatoonManagementDialog({ open, onOpenChange }: PlatoonManagemen
     platoon: Platoon | null;
     soldierCount: number;
   }>({ open: false, platoon: null, soldierCount: 0 });
+  const [showAutoAssign, setShowAutoAssign] = useState(false);
+
+  useEffect(() => {
+    if (platoons.length > 0) {
+      const unassignedCount = soldiers.filter((s) => !s.platoonId).length;
+      const hasShownPrompt = localStorage.getItem('platoons-auto-assign-prompted');
+
+      if (unassignedCount > 0 && !hasShownPrompt) {
+        setShowAutoAssign(true);
+        localStorage.setItem('platoons-auto-assign-prompted', 'true');
+      }
+    }
+  }, [platoons.length, soldiers]);
 
   const handleCreate = (data: { name: string; commander?: string; description?: string }) => {
     createPlatoon.mutate(data, {
@@ -211,6 +227,14 @@ export function PlatoonManagementDialog({ open, onOpenChange }: PlatoonManagemen
           availablePlatoons={platoons.filter((p) => p.id !== deleteDialog.platoon?.id)}
           onConfirm={handleDeleteConfirm}
           isDeleting={bulkUpdate.isPending || deletePlatoon.isPending}
+        />
+      )}
+
+      {showAutoAssign && (
+        <AutoAssignPrompt
+          unassignedCount={soldiers.filter((s) => !s.platoonId).length}
+          platoonIds={platoons.map((p) => p.id)}
+          onClose={() => setShowAutoAssign(false)}
         />
       )}
     </>
