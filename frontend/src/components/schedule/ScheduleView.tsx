@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, Calendar, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -107,6 +107,34 @@ export function ScheduleView() {
     return startOfWeek(nextWeek, { weekStartsOn: 0 }) <= opEnd;
   }, [currentWeekStart, settings]);
 
+  // Ensure current week is within operational period when settings load
+  useEffect(() => {
+    if (!settings?.operationalStartDate || !settings?.operationalEndDate) {
+      return;
+    }
+
+    const opStart = new Date(settings.operationalStartDate);
+    const opEnd = new Date(settings.operationalEndDate);
+    const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
+
+    // If current week is before operational period, jump to first week
+    if (weekEnd < opStart) {
+      setCurrentWeekStart(startOfWeek(opStart, { weekStartsOn: 0 }));
+      return;
+    }
+
+    // If current week is after operational period, jump to last week
+    if (currentWeekStart > opEnd) {
+      setCurrentWeekStart(startOfWeek(opEnd, { weekStartsOn: 0 }));
+      return;
+    }
+
+    // If current week overlaps but starts before, jump to first week
+    if (currentWeekStart < opStart) {
+      setCurrentWeekStart(startOfWeek(opStart, { weekStartsOn: 0 }));
+    }
+  }, [settings?.operationalStartDate, settings?.operationalEndDate]);
+
   // Navigation functions
   const goToPreviousWeek = () => {
     setCurrentWeekStart(prev => addDays(prev, -7));
@@ -117,7 +145,32 @@ export function ScheduleView() {
   };
 
   const goToToday = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
+    const today = new Date();
+    const todayWeekStart = startOfWeek(today, { weekStartsOn: 0 });
+
+    // If no operational period set, just go to today
+    if (!settings?.operationalStartDate || !settings?.operationalEndDate) {
+      setCurrentWeekStart(todayWeekStart);
+      return;
+    }
+
+    const opStart = new Date(settings.operationalStartDate);
+    const opEnd = new Date(settings.operationalEndDate);
+
+    // If today is before operational period, go to first week
+    if (today < opStart) {
+      setCurrentWeekStart(startOfWeek(opStart, { weekStartsOn: 0 }));
+      return;
+    }
+
+    // If today is after operational period, go to last week
+    if (today > opEnd) {
+      setCurrentWeekStart(startOfWeek(opEnd, { weekStartsOn: 0 }));
+      return;
+    }
+
+    // Today is within operational period
+    setCurrentWeekStart(todayWeekStart);
   };
 
   if (isLoading) {
