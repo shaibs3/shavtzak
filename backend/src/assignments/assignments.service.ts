@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { Assignment } from './entities/assignment.entity';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
+import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
 export class AssignmentsService {
   constructor(
     @InjectRepository(Assignment)
     private assignmentsRepository: Repository<Assignment>,
+    private settingsService: SettingsService,
   ) {}
 
   async create(createAssignmentDto: CreateAssignmentDto): Promise<Assignment> {
@@ -18,7 +20,23 @@ export class AssignmentsService {
   }
 
   async findAll(): Promise<Assignment[]> {
-    return this.assignmentsRepository.find();
+    const settings = await this.settingsService.get();
+    const query = this.assignmentsRepository.createQueryBuilder('assignment');
+
+    // Filter by operational period if set
+    if (settings.operationalStartDate) {
+      query.andWhere('assignment.startTime >= :startDate', {
+        startDate: settings.operationalStartDate,
+      });
+    }
+
+    if (settings.operationalEndDate) {
+      query.andWhere('assignment.endTime <= :endDate', {
+        endDate: settings.operationalEndDate,
+      });
+    }
+
+    return query.getMany();
   }
 
   async findOne(id: string): Promise<Assignment> {
