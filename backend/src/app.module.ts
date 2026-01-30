@@ -8,6 +8,7 @@ import { SoldiersModule } from './soldiers/soldiers.module';
 import { TasksModule } from './tasks/tasks.module';
 import { AssignmentsModule } from './assignments/assignments.module';
 import { SettingsModule } from './settings/settings.module';
+import { PlatoonsModule } from './platoons/platoons.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { SettingsModule } from './settings/settings.module';
     TasksModule,
     AssignmentsModule,
     SettingsModule,
+    PlatoonsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
