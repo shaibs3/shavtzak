@@ -5,6 +5,14 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Role, roleLabels, Soldier } from '@/types/scheduling';
 import { X } from 'lucide-react';
+import { usePlatoons } from '@/hooks/usePlatoons';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface SoldierFormProps {
   soldier?: Soldier;
@@ -15,11 +23,15 @@ interface SoldierFormProps {
 const allRoles: Role[] = ['commander', 'driver', 'radio_operator', 'soldier'];
 
 export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
+  const { data: platoons = [] } = usePlatoons();
   const [name, setName] = useState(soldier?.name || '');
   const [rank, setRank] = useState(soldier?.rank || '');
   const [roles, setRoles] = useState<Role[]>(soldier?.roles || ['soldier']);
   const [maxVacationDays, setMaxVacationDays] = useState(soldier?.maxVacationDays || 5);
   const [usedVacationDays, setUsedVacationDays] = useState(soldier?.usedVacationDays || 0);
+  const [platoonId, setPlatoonId] = useState<string | null>(
+    soldier?.platoonId || null
+  );
 
   const handleRoleToggle = (role: Role) => {
     setRoles(prev =>
@@ -32,13 +44,14 @@ export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !rank.trim() || roles.length === 0) return;
-    
+
     onSubmit({
       name: name.trim(),
       rank: rank.trim(),
       roles,
       maxVacationDays,
       usedVacationDays,
+      platoonId,
     });
   };
 
@@ -119,6 +132,32 @@ export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
                 className="mt-1.5"
               />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="platoon">מחלקה</Label>
+            <Select
+              value={platoonId || 'none'}
+              onValueChange={(v) => setPlatoonId(v === 'none' ? null : v)}
+            >
+              <SelectTrigger id="platoon" className="mt-1.5">
+                <SelectValue placeholder="בחר מחלקה" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">ללא מחלקה</SelectItem>
+                {platoons.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: p.color }}
+                      />
+                      <span>{p.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex gap-3 pt-4">

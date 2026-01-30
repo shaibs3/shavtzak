@@ -1,20 +1,26 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, Calendar } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Plus, Edit2, Trash2, Calendar, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSoldiers, useCreateSoldier, useUpdateSoldier, useDeleteSoldier } from '@/hooks/useSoldiers';
 import { roleLabels, Soldier } from '@/types/scheduling';
 import { SoldierForm } from './SoldierForm';
 import { ConstraintForm } from './ConstraintForm';
+import { usePlatoons } from '@/hooks/usePlatoons';
+import { PlatoonManagementDialog } from '@/components/platoons/PlatoonManagementDialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function SoldiersView() {
   const { data: soldiers, isLoading, error, refetch } = useSoldiers();
+  const { data: platoons = [] } = usePlatoons();
   const createSoldier = useCreateSoldier();
   const updateSoldier = useUpdateSoldier();
   const deleteSoldier = useDeleteSoldier();
   const [showForm, setShowForm] = useState(false);
   const [editingSoldier, setEditingSoldier] = useState<Soldier | null>(null);
   const [constraintSoldier, setConstraintSoldier] = useState<Soldier | null>(null);
+  const [platoonDialog, setPlatoonDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('all');
 
   const handleSubmit = (data: Omit<Soldier, 'id' | 'constraints'>) => {
     if (editingSoldier) {
@@ -36,6 +42,12 @@ export function SoldiersView() {
       deleteSoldier.mutate(id);
     }
   };
+
+  const filteredSoldiers = useMemo(() => {
+    if (activeTab === 'all') return soldiers;
+    if (activeTab === 'none') return soldiers?.filter((s) => !s.platoonId);
+    return soldiers?.filter((s) => s.platoonId === activeTab);
+  }, [soldiers, activeTab]);
 
   if (isLoading) {
     return <div className="p-8 text-center">טוען...</div>;
@@ -65,92 +77,130 @@ export function SoldiersView() {
         </Button>
       </div>
 
-      <div className="bg-card rounded-xl shadow-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">שם</th>
-                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">דרגה</th>
-                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">תפקידים</th>
-                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">חופשה</th>
-                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">אילוצים</th>
-                <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">פעולות</th>
-              </tr>
-            </thead>
-            <tbody>
-              {soldiersList.map((soldier) => (
-                <tr key={soldier.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">
-                          {soldier.name.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
-                      <span className="font-medium">{soldier.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{soldier.rank}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {soldier.roles.map((role) => (
-                        <Badge key={role} variant="secondary" className="text-xs">
-                          {roleLabels[role]}
-                        </Badge>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-medium">{soldier.usedVacationDays}</span>
-                    <span className="text-muted-foreground">/{soldier.maxVacationDays}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setConstraintSoldier(soldier)}
-                      className="gap-1 text-muted-foreground hover:text-foreground"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      {soldier.constraints.length} אילוצים
-                    </Button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(soldier)}
-                        className="h-8 w-8"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(soldier.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex items-center justify-between mb-4">
+          <TabsList>
+            <TabsTrigger value="all">
+              הכל ({soldiersList.length})
+            </TabsTrigger>
+            {platoons.map((platoon) => (
+              <TabsTrigger key={platoon.id} value={platoon.id}>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: platoon.color }}
+                  />
+                  <span>{platoon.name}</span>
+                  <span className="text-muted-foreground">
+                    ({soldiersList.filter((s) => s.platoonId === platoon.id).length})
+                  </span>
+                </div>
+              </TabsTrigger>
+            ))}
+            <TabsTrigger value="none">
+              ללא מחלקה ({soldiersList.filter((s) => !s.platoonId).length})
+            </TabsTrigger>
+          </TabsList>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPlatoonDialog(true)}
+            className="gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            נהל מחלקות
+          </Button>
         </div>
 
-        {soldiersList.length === 0 && (
-          <div className="py-12 text-center text-muted-foreground">
-            <p>אין חיילים במערכת</p>
-            <Button onClick={() => setShowForm(true)} variant="link" className="mt-2">
-              הוסף חייל ראשון
-            </Button>
+        <TabsContent value={activeTab} className="mt-0">
+          <div className="bg-card rounded-xl shadow-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">שם</th>
+                    <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">דרגה</th>
+                    <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">תפקידים</th>
+                    <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">חופשה</th>
+                    <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">אילוצים</th>
+                    <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">פעולות</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(filteredSoldiers ?? []).map((soldier) => (
+                    <tr key={soldier.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-sm font-semibold text-primary">
+                              {soldier.name.split(' ').map(n => n[0]).join('')}
+                            </span>
+                          </div>
+                          <span className="font-medium">{soldier.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{soldier.rank}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {soldier.roles.map((role) => (
+                            <Badge key={role} variant="secondary" className="text-xs">
+                              {roleLabels[role]}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-medium">{soldier.usedVacationDays}</span>
+                        <span className="text-muted-foreground">/{soldier.maxVacationDays}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setConstraintSoldier(soldier)}
+                          className="gap-1 text-muted-foreground hover:text-foreground"
+                        >
+                          <Calendar className="w-4 h-4" />
+                          {soldier.constraints.length} אילוצים
+                        </Button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(soldier)}
+                            className="h-8 w-8"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(soldier.id)}
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {(filteredSoldiers ?? []).length === 0 && (
+              <div className="py-12 text-center text-muted-foreground">
+                <p>אין חיילים במערכת</p>
+                <Button onClick={() => setShowForm(true)} variant="link" className="mt-2">
+                  הוסף חייל ראשון
+                </Button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </TabsContent>
+      </Tabs>
 
       {showForm && (
         <SoldierForm
@@ -169,6 +219,11 @@ export function SoldiersView() {
           onClose={() => setConstraintSoldier(null)}
         />
       )}
+
+      <PlatoonManagementDialog
+        open={platoonDialog}
+        onOpenChange={setPlatoonDialog}
+      />
     </div>
   );
 }
