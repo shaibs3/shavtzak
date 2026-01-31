@@ -56,6 +56,19 @@ export function PlatoonManagementDialog({ open, onOpenChange }: PlatoonManagemen
     }
   }, [platoons.length, soldiers]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && open) {
+        onOpenChange(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, onOpenChange]);
+
   const handleCreate = (data: { name: string; commander?: string; description?: string }) => {
     createPlatoon.mutate(data, {
       onSuccess: () => {
