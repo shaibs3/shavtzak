@@ -16,10 +16,10 @@ export class Platoon {
   @Column({ unique: true, length: 100 })
   name: string;
 
-  @Column({ nullable: true, length: 100 })
+  @Column({ type: 'varchar', nullable: true, length: 100 })
   commander: string | null;
 
-  @Column({ length: 7 })
+  @Column({ type: 'varchar', length: 7 })
   color: string;
 
   @Column({ type: 'text', nullable: true })
