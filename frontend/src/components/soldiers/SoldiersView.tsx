@@ -114,7 +114,7 @@ export function SoldiersView() {
 
         <TabsContent value={activeTab} className="mt-0">
           <div className="bg-card rounded-xl shadow-card overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" dir="rtl">
               <table className="w-full">
                 <thead className="bg-muted/50">
                   <tr>
@@ -128,8 +128,8 @@ export function SoldiersView() {
                 <tbody>
                   {(filteredSoldiers ?? []).map((soldier) => (
                     <tr key={soldier.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex gap-1 justify-start">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -148,11 +148,11 @@ export function SoldiersView() {
                           </Button>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-right">
                         <span className="font-medium">{soldier.name}</span>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex flex-wrap gap-1 justify-start">
                           {soldier.roles.map((role) => (
                             <Badge key={role} variant="secondary" className="text-xs">
                               {roleLabels[role]}
@@ -160,11 +160,11 @@ export function SoldiersView() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-right">
                         <span className="font-medium">{soldier.usedVacationDays}</span>
                         <span className="text-muted-foreground">/{soldier.maxVacationDays}</span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-right">
                         <Button
                           variant="ghost"
                           size="sm"
