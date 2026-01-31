@@ -15,8 +15,8 @@ export class BulkUpdateSoldiersDto {
     example: 'uuid-platoon',
     description: 'Platoon ID to assign (or null to remove)',
     required: false,
+    nullable: true,
   })
-  @IsUUID()
   @IsOptional()
   platoonId?: string | null;
 }
