@@ -74,16 +74,6 @@ export function ScheduleView() {
     return assignmentsList.filter((a) => dayKeys.has(format(asDate(a.startTime), 'yyyy-MM-dd')));
   }, [assignmentsList, dayKeys]);
 
-  const assignmentsByTaskDay = useMemo(() => {
-    const map = new Map<string, typeof displayedAssignments>();
-    for (const a of displayedAssignments) {
-      const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
-      const key = `${a.taskId}__${dayKey}`;
-      map.set(key, [...(map.get(key) ?? []), a]);
-    }
-    return map;
-  }, [displayedAssignments]);
-
   const soldierById = useMemo(() => new Map(soldiersList.map((s) => [s.id, s])), [soldiersList]);
   const taskById = useMemo(() => new Map(tasksList.map((t) => [t.id, t])), [tasksList]);
   const platoonById = useMemo(
@@ -105,6 +95,16 @@ export function ScheduleView() {
       return false;
     });
   }, [weekAssignments, selectedPlatoonFilter, soldierById]);
+
+  const assignmentsByTaskDay = useMemo(() => {
+    const map = new Map<string, typeof displayedAssignments>();
+    for (const a of displayedAssignments) {
+      const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
+      const key = `${a.taskId}__${dayKey}`;
+      map.set(key, [...(map.get(key) ?? []), a]);
+    }
+    return map;
+  }, [displayedAssignments]);
 
   const isLoading = assignmentsLoading || soldiersLoading || tasksLoading || settingsLoading;
 
