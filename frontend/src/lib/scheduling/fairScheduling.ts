@@ -1,10 +1,11 @@
 import { addDays, addHours, differenceInHours, isWithinInterval, startOfDay } from 'date-fns';
-import type { Assignment, Role, Soldier, Task } from '@/types/scheduling';
+import type { Assignment, Role, Soldier, Task, Platoon } from '@/types/scheduling';
 
 type BuildScheduleParams = {
   weekStart: Date;
   soldiers: Soldier[];
   tasks: Task[];
+  platoons: Platoon[];
   existingAssignments: Assignment[];
   idFactory?: () => string;
 };
@@ -64,7 +65,7 @@ function weekWindow(weekStart: Date) {
   return { start, end };
 }
 
-export function buildFairWeekSchedule({ weekStart, soldiers, tasks, existingAssignments, idFactory }: BuildScheduleParams) {
+export function buildFairWeekSchedule({ weekStart, soldiers, tasks, platoons, existingAssignments, idFactory }: BuildScheduleParams) {
   const makeId = idFactory ?? defaultIdFactory;
   const { start: wStart, end: wEnd } = weekWindow(weekStart);
 
@@ -84,17 +85,28 @@ export function buildFairWeekSchedule({ weekStart, soldiers, tasks, existingAssi
   const weekAssignments = () => working.filter(inWeek);
   const hoursBySoldier = new Map<string, number>();
   const countBySoldier = new Map<string, number>();
+  const hoursByPlatoon = new Map<string, number>();
 
   for (const a of weekAssignments()) {
     const task = tasksById.get(a.taskId);
     const duration = task?.shiftDuration ?? Math.max(0, differenceInHours(asDate(a.endTime), asDate(a.startTime)));
     hoursBySoldier.set(a.soldierId, (hoursBySoldier.get(a.soldierId) ?? 0) + duration);
     countBySoldier.set(a.soldierId, (countBySoldier.get(a.soldierId) ?? 0) + 1);
+
+    const soldier = soldiers.find(s => s.id === a.soldierId);
+    if (soldier?.platoonId) {
+      hoursByPlatoon.set(soldier.platoonId, (hoursByPlatoon.get(soldier.platoonId) ?? 0) + duration);
+    }
   }
 
   const addToWeekStats = (soldierId: string, duration: number) => {
     hoursBySoldier.set(soldierId, (hoursBySoldier.get(soldierId) ?? 0) + duration);
     countBySoldier.set(soldierId, (countBySoldier.get(soldierId) ?? 0) + 1);
+
+    const soldier = soldiers.find(s => s.id === soldierId);
+    if (soldier?.platoonId) {
+      hoursByPlatoon.set(soldier.platoonId, (hoursByPlatoon.get(soldier.platoonId) ?? 0) + duration);
+    }
   };
 
   let unfilledSlots = 0;
@@ -106,7 +118,7 @@ export function buildFairWeekSchedule({ weekStart, soldiers, tasks, existingAssi
       const start = addHours(startOfDay(day), task.shiftStartHour);
       const end = addHours(start, task.shiftDuration);
 
-      // If already fully locked for this task/day, skip.
+      // Check for locked assignments for this task/day
       const lockedForSlot = working.filter(
         (a) =>
           a.locked &&
@@ -114,66 +126,113 @@ export function buildFairWeekSchedule({ weekStart, soldiers, tasks, existingAssi
           isWithinInterval(asDate(a.startTime), { start: startOfDay(day), end: addHours(startOfDay(day), 24) }),
       );
 
-      // Create missing slots only (beyond locked existing)
+      // Determine which platoon is locked (if any)
+      const lockedPlatoons = new Set(
+        lockedForSlot
+          .map(a => soldiers.find(s => s.id === a.soldierId)?.platoonId)
+          .filter(Boolean) as string[]
+      );
+      const requiredPlatoonId = lockedPlatoons.size === 1 ? Array.from(lockedPlatoons)[0] : null;
+
+      // Calculate what roles are still needed
       const lockedCountsByRole = lockedForSlot.reduce<Record<Role, number>>((acc, a) => {
         acc[a.role] = (acc[a.role] ?? 0) + 1;
         return acc;
       }, {} as Record<Role, number>);
 
+      const neededRoles: { role: Role; count: number }[] = [];
       for (const req of task.requiredRoles) {
         const already = lockedCountsByRole[req.role] ?? 0;
         const needed = Math.max(0, req.count - already);
+        if (needed > 0) {
+          neededRoles.push({ role: req.role, count: needed });
+        }
+      }
 
-        for (let i = 0; i < needed; i++) {
-          const candidates = soldiers
-            .filter((s) => s.roles.includes(req.role))
-            .filter((s) => soldierIsAvailableForInterval(s, start, end))
-            .filter((s) => {
-              // prevent overlaps with any existing assignment
-              return !working
-                .filter((a) => a.soldierId === s.id)
-                .some((a) => overlaps(asDate(a.startTime), asDate(a.endTime), start, end));
-            })
-            .filter((s) => {
-              const last = getLastAssignmentBefore(working, s.id, start);
-              if (!last) return true;
-              return differenceInHours(start, asDate(last.endTime)) >= task.restTimeBetweenShifts;
-            })
-            .filter((s) => {
-              if (!isNightShift(task)) return true;
-              return !hasNightPreviousDay(working, s.id, day, tasksById);
-            });
+      if (neededRoles.length === 0) continue; // All filled by locked assignments
 
-          if (candidates.length === 0) {
-            unfilledSlots += 1;
-            continue;
-          }
+      // Try to assign from a single platoon
+      const platoonsToTry = requiredPlatoonId
+        ? [platoons.find(p => p.id === requiredPlatoonId)!]
+        : platoons
+            .slice()
+            .sort((a, b) => (hoursByPlatoon.get(a.id) ?? 0) - (hoursByPlatoon.get(b.id) ?? 0));
 
-          // fairness: prefer lower hours, then lower count
-          const chosen = candidates
-            .map((s) => ({
-              s,
-              hours: hoursBySoldier.get(s.id) ?? 0,
-              count: countBySoldier.get(s.id) ?? 0,
-              tie: Math.random(),
-            }))
-            .sort((a, b) => a.hours - b.hours || a.count - b.count || a.tie - b.tie)[0]!.s;
+      let assigned = false;
 
-          working = [
-            ...working,
-            {
+      for (const platoon of platoonsToTry) {
+        // Try to find all required soldiers from this platoon
+        const platoonSoldiers = soldiers.filter(s => s.platoonId === platoon.id);
+        const assignments: Assignment[] = [];
+        let canFulfill = true;
+
+        for (const needed of neededRoles) {
+          for (let i = 0; i < needed.count; i++) {
+            const alreadyUsedInThisSlot = new Set(assignments.map(a => a.soldierId));
+
+            const candidates = platoonSoldiers
+              .filter((s) => s.roles.includes(needed.role))
+              .filter((s) => !alreadyUsedInThisSlot.has(s.id))
+              .filter((s) => soldierIsAvailableForInterval(s, start, end))
+              .filter((s) => {
+                return !working
+                  .filter((a) => a.soldierId === s.id)
+                  .some((a) => overlaps(asDate(a.startTime), asDate(a.endTime), start, end));
+              })
+              .filter((s) => {
+                const last = getLastAssignmentBefore(working, s.id, start);
+                if (!last) return true;
+                return differenceInHours(start, asDate(last.endTime)) >= task.restTimeBetweenShifts;
+              })
+              .filter((s) => {
+                if (!isNightShift(task)) return true;
+                return !hasNightPreviousDay(working, s.id, day, tasksById);
+              });
+
+            if (candidates.length === 0) {
+              canFulfill = false;
+              break;
+            }
+
+            // Choose fairest soldier
+            const chosen = candidates
+              .map((s) => ({
+                s,
+                hours: hoursBySoldier.get(s.id) ?? 0,
+                count: countBySoldier.get(s.id) ?? 0,
+                tie: Math.random(),
+              }))
+              .sort((a, b) => a.hours - b.hours || a.count - b.count || a.tie - b.tie)[0]!.s;
+
+            assignments.push({
               id: makeId(),
               taskId: task.id,
               soldierId: chosen.id,
-              role: req.role,
+              role: needed.role,
               startTime: start,
               endTime: end,
               locked: false,
-            },
-          ];
+            });
+          }
 
-          addToWeekStats(chosen.id, task.shiftDuration);
+          if (!canFulfill) break;
         }
+
+        if (canFulfill) {
+          // Add all assignments
+          working = [...working, ...assignments];
+          for (const assignment of assignments) {
+            addToWeekStats(assignment.soldierId, task.shiftDuration);
+          }
+          assigned = true;
+          break;
+        }
+      }
+
+      if (!assigned) {
+        // Count how many roles we couldn't fill
+        const totalNeeded = neededRoles.reduce((sum, nr) => sum + nr.count, 0);
+        unfilledSlots += totalNeeded;
       }
     }
   }

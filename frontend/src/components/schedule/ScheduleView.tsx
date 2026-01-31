@@ -231,6 +231,7 @@ export function ScheduleView() {
       weekStart: currentWeekStart,
       soldiers: soldiersList,
       tasks: tasksList,
+      platoons: platoons,
       existingAssignments: assignmentsList,
     });
 
