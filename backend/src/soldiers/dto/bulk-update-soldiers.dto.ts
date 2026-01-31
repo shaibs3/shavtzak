@@ -18,5 +18,6 @@ export class BulkUpdateSoldiersDto {
     nullable: true,
   })
   @IsOptional()
+  @IsUUID('4')
   platoonId?: string | null;
 }
