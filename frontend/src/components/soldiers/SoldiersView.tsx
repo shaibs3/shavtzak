@@ -120,7 +120,6 @@ export function SoldiersView() {
                   <tr>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">פעולות</th>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">שם</th>
-                    <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">דרגה</th>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">תפקידים</th>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">חופשה</th>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">אילוצים</th>
@@ -152,7 +151,6 @@ export function SoldiersView() {
                       <td className="px-4 py-3">
                         <span className="font-medium">{soldier.name}</span>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{soldier.rank}</td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {soldier.roles.map((role) => (
