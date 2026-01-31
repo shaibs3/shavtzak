@@ -244,13 +244,21 @@ export function ScheduleView() {
       return dayKey >= weekStart && dayKey < weekEnd;
     });
 
-    // Delete old assignments
+    // Delete old assignments (non-locked ones only)
     for (const assignment of toDelete) {
-      deleteAssignment.mutate(assignment.id);
+      if (!assignment.locked) {
+        deleteAssignment.mutate(assignment.id);
+      }
     }
 
-    // Create new assignments
-    for (const assignment of next) {
+    // Create new assignments (only for current week, non-locked)
+    const toCreate = next.filter((a) => {
+      const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
+      const isInCurrentWeek = dayKey >= weekStart && dayKey < weekEnd;
+      return isInCurrentWeek && !a.locked;
+    });
+
+    for (const assignment of toCreate) {
       createAssignment.mutate({
         taskId: assignment.taskId,
         soldierId: assignment.soldierId,
