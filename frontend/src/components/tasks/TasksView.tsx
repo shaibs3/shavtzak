@@ -75,6 +75,7 @@ export function TasksView() {
             className={`bg-card rounded-xl p-5 shadow-card transition-all ${
               !task.isActive ? 'opacity-60' : ''
             }`}
+            dir="rtl"
           >
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -110,7 +111,7 @@ export function TasksView() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-1 mb-4">
+            <div className="flex flex-wrap gap-1 mb-4" dir="rtl">
               {task.requiredRoles.map((role, idx) => (
                 <Badge key={idx} variant="outline" className="text-xs">
                   {role.count} {roleLabels[role.role]}
