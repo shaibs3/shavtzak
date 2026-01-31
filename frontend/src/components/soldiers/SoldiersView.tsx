@@ -118,26 +118,39 @@ export function SoldiersView() {
               <table className="w-full">
                 <thead className="bg-muted/50">
                   <tr>
+                    <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">פעולות</th>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">שם</th>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">דרגה</th>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">תפקידים</th>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">חופשה</th>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">אילוצים</th>
-                    <th className="text-right px-4 py-3 text-sm font-semibold text-muted-foreground">פעולות</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(filteredSoldiers ?? []).map((soldier) => (
                     <tr key={soldier.id} className="border-t border-border hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-sm font-semibold text-primary">
-                              {soldier.name.split(' ').map(n => n[0]).join('')}
-                            </span>
-                          </div>
-                          <span className="font-medium">{soldier.name}</span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(soldier)}
+                            className="h-8 w-8"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(soldier.id)}
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-medium">{soldier.name}</span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{soldier.rank}</td>
                       <td className="px-4 py-3">
@@ -163,26 +176,6 @@ export function SoldiersView() {
                           <Calendar className="w-4 h-4" />
                           {soldier.constraints.length} אילוצים
                         </Button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(soldier)}
-                            className="h-8 w-8"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(soldier.id)}
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
                       </td>
                     </tr>
                   ))}
