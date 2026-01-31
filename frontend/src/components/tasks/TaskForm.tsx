@@ -53,7 +53,10 @@ export function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || requiredRoles.length === 0) return;
-    
+
+    // Remove id from requiredRoles (server doesn't accept it)
+    const cleanedRoles = requiredRoles.map(({ role, count }) => ({ role, count }));
+
     onSubmit({
       name: name.trim(),
       description: description.trim() || undefined,
@@ -61,7 +64,7 @@ export function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
       shiftDuration,
       restTimeBetweenShifts: restTime,
       isActive,
-      requiredRoles,
+      requiredRoles: cleanedRoles,
     });
   };
 
