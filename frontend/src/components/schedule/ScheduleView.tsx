@@ -46,6 +46,7 @@ export function ScheduleView() {
   );
 
   const [selectedPlatoonFilter, setSelectedPlatoonFilter] = useState<string[]>([]);
+  const [isScheduling, setIsScheduling] = useState(false);
 
   const [manualDialog, setManualDialog] = useState<{
     open: boolean;
@@ -227,56 +228,78 @@ export function ScheduleView() {
   }
 
   const runAutoScheduling = async () => {
-    const { assignments: next, unfilledSlots } = buildFairWeekSchedule({
-      weekStart: currentWeekStart,
-      soldiers: soldiersList,
-      tasks: tasksList,
-      platoons: platoons,
-      existingAssignments: assignmentsList,
-    });
-
-    // Delete old assignments for the week and create new ones
-    const weekStart = format(currentWeekStart, 'yyyy-MM-dd');
-    const weekEnd = format(addDays(currentWeekStart, 7), 'yyyy-MM-dd');
-
-    // Find assignments to delete (those in the current week)
-    const toDelete = assignmentsList.filter((a) => {
-      const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
-      return dayKey >= weekStart && dayKey < weekEnd;
-    });
-
-    // Delete old assignments (non-locked ones only)
-    for (const assignment of toDelete) {
-      if (!assignment.locked) {
-        deleteAssignment.mutate(assignment.id);
-      }
-    }
-
-    // Create new assignments (only for current week, non-locked)
-    const toCreate = next.filter((a) => {
-      const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
-      const isInCurrentWeek = dayKey >= weekStart && dayKey < weekEnd;
-      return isInCurrentWeek && !a.locked;
-    });
-
-    for (const assignment of toCreate) {
-      createAssignment.mutate({
-        taskId: assignment.taskId,
-        soldierId: assignment.soldierId,
-        role: assignment.role,
-        startTime: assignment.startTime,
-        endTime: assignment.endTime,
-        locked: assignment.locked,
+    if (isScheduling) {
+      toast({
+        title: 'שיבוץ כבר רץ',
+        description: 'אנא המתן לסיום השיבוץ הנוכחי',
+        variant: 'destructive',
       });
+      return;
     }
 
-    toast({
-      title: 'שיבוץ אוטומטי הושלם',
-      description:
-        unfilledSlots > 0
-          ? `לא הצלחתי לאייש ${unfilledSlots} תפקידים השבוע (בדוק אילוצים/כוח אדם).`
-          : 'כל התפקידים אוישו בהתאם לכללי ההוגנות.',
-    });
+    setIsScheduling(true);
+
+    try {
+      const { assignments: next, unfilledSlots } = buildFairWeekSchedule({
+        weekStart: currentWeekStart,
+        soldiers: soldiersList,
+        tasks: tasksList,
+        platoons: platoons,
+        existingAssignments: assignmentsList,
+      });
+
+      // Delete old assignments for the week and create new ones
+      const weekStart = format(currentWeekStart, 'yyyy-MM-dd');
+      const weekEnd = format(addDays(currentWeekStart, 7), 'yyyy-MM-dd');
+
+      // Find assignments to delete (those in the current week)
+      const toDelete = assignmentsList.filter((a) => {
+        const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
+        return dayKey >= weekStart && dayKey < weekEnd;
+      });
+
+      // Delete old assignments (non-locked ones only) - sequentially to avoid conflicts
+      for (const assignment of toDelete) {
+        if (!assignment.locked) {
+          await deleteAssignment.mutateAsync(assignment.id);
+        }
+      }
+
+      // Create new assignments (only for current week, non-locked) - sequentially
+      const toCreate = next.filter((a) => {
+        const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
+        const isInCurrentWeek = dayKey >= weekStart && dayKey < weekEnd;
+        return isInCurrentWeek && !a.locked;
+      });
+
+      for (const assignment of toCreate) {
+        await createAssignment.mutateAsync({
+          taskId: assignment.taskId,
+          soldierId: assignment.soldierId,
+          role: assignment.role,
+          startTime: assignment.startTime,
+          endTime: assignment.endTime,
+          locked: assignment.locked,
+        });
+      }
+
+      toast({
+        title: 'שיבוץ אוטומטי הושלם',
+        description:
+          unfilledSlots > 0
+            ? `לא הצלחתי לאייש ${unfilledSlots} תפקידים השבוע (בדוק אילוצים/כוח אדם).`
+            : 'כל התפקידים אוישו בהתאם לכללי ההוגנות.',
+      });
+    } catch (error) {
+      toast({
+        title: 'שגיאה בשיבוץ',
+        description: 'אירעה שגיאה בעת ביצוע השיבוץ האוטומטי',
+        variant: 'destructive',
+      });
+      console.error('Auto-scheduling error:', error);
+    } finally {
+      setIsScheduling(false);
+    }
   };
 
   return (
@@ -316,9 +339,15 @@ export function ScheduleView() {
               <SelectItem value="none">ללא מחלקה</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="default" size="sm" onClick={runAutoScheduling} className="gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={runAutoScheduling}
+            disabled={isScheduling}
+            className="gap-2"
+          >
             <Sparkles className="w-4 h-4" />
-            שיבוץ אוטומטי
+            {isScheduling ? 'משבץ...' : 'שיבוץ אוטומטי'}
           </Button>
           <Button variant="outline" size="sm" onClick={goToToday}>
             היום
