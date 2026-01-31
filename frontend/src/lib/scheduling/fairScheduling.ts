@@ -156,7 +156,20 @@ export function buildFairWeekSchedule({ weekStart, soldiers, tasks, platoons, ex
         ? [platoons.find(p => p.id === requiredPlatoonId)!]
         : platoons
             .slice()
-            .sort((a, b) => (hoursByPlatoon.get(a.id) ?? 0) - (hoursByPlatoon.get(b.id) ?? 0));
+            .sort((a, b) => {
+              const hoursA = hoursByPlatoon.get(a.id) ?? 0;
+              const hoursB = hoursByPlatoon.get(b.id) ?? 0;
+              // If hours are equal, use day rotation to vary the order
+              if (hoursA === hoursB) {
+                // Rotate platoons based on day index to ensure fairness
+                const indexA = platoons.indexOf(a);
+                const indexB = platoons.indexOf(b);
+                const rotatedA = (indexA + dayIndex) % platoons.length;
+                const rotatedB = (indexB + dayIndex) % platoons.length;
+                return rotatedA - rotatedB;
+              }
+              return hoursA - hoursB;
+            });
 
       let assigned = false;
 
