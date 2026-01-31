@@ -153,11 +153,19 @@ export function SoldiersView() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex flex-wrap gap-1 justify-start">
-                          {soldier.roles.map((role) => (
-                            <Badge key={role} variant="secondary" className="text-xs">
-                              {roleLabels[role]}
-                            </Badge>
-                          ))}
+                          {soldier.roles
+                            .filter((role) => {
+                              // אם יש תפקיד אחר מלבד "חייל", לא מציגים את "חייל"
+                              if (role === 'soldier' && soldier.roles.length > 1) {
+                                return false;
+                              }
+                              return true;
+                            })
+                            .map((role) => (
+                              <Badge key={role} variant="secondary" className="text-xs">
+                                {roleLabels[role]}
+                              </Badge>
+                            ))}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">

@@ -34,11 +34,22 @@ export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
   );
 
   const handleRoleToggle = (role: Role) => {
-    setRoles(prev =>
-      prev.includes(role)
-        ? prev.filter(r => r !== role)
-        : [...prev, role]
-    );
+    setRoles(prev => {
+      if (prev.includes(role)) {
+        // מסירים תפקיד
+        const newRoles = prev.filter(r => r !== role);
+        // אם נשארנו בלי תפקידים, מוסיפים "חייל" אוטומטית
+        return newRoles.length === 0 ? ['soldier'] : newRoles;
+      } else {
+        // מוסיפים תפקיד
+        const newRoles = [...prev, role];
+        // אם הוספנו תפקיד מיוחד (לא חייל), מסירים את "חייל" אוטומטית
+        if (role !== 'soldier' && newRoles.includes('soldier')) {
+          return newRoles.filter(r => r !== 'soldier');
+        }
+        return newRoles;
+      }
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
