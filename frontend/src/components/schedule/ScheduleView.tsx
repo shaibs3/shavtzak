@@ -21,7 +21,9 @@ import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { buildFairWeekSchedule } from '@/lib/scheduling/fairScheduling';
 import { AssignDialog } from '@/components/schedule/AssignDialog';
-import { FairnessHistogram } from '@/components/schedule/FairnessHistogram';
+import { PlatoonStatsCards } from '@/components/schedule/PlatoonStatsCards';
+import { PlatoonFairnessChart } from '@/components/schedule/PlatoonFairnessChart';
+import { PlatoonTaskDistribution } from '@/components/schedule/PlatoonTaskDistribution';
 
 function asDate(value: unknown): Date {
   if (value instanceof Date) return value;
@@ -434,7 +436,32 @@ export function ScheduleView() {
         )}
       </div>
 
-      <FairnessHistogram soldiers={soldiersList} tasks={tasksList} weekAssignments={weekAssignments} />
+      {platoons.length > 0 && (
+        <div className="space-y-6">
+          <PlatoonStatsCards
+            soldiers={soldiersList}
+            tasks={tasksList}
+            platoons={platoons}
+            weekAssignments={displayedAssignments}
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <PlatoonFairnessChart
+              soldiers={soldiersList}
+              tasks={tasksList}
+              platoons={platoons}
+              weekAssignments={displayedAssignments}
+            />
+
+            <PlatoonTaskDistribution
+              soldiers={soldiersList}
+              tasks={tasksList}
+              platoons={platoons}
+              weekAssignments={displayedAssignments}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-card rounded-xl p-5 shadow-card">
