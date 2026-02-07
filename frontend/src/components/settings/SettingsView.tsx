@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettings, useUpdateSettings } from '@/hooks/useSettings';
+import { useAuth } from '@/hooks/useAuth';
 
 export function SettingsView() {
+  const { isAdmin } = useAuth();
   const { data: settings, isLoading, error, refetch } = useSettings();
   const updateSettings = useUpdateSettings();
 
@@ -239,12 +241,14 @@ export function SettingsView() {
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} className="gap-2" disabled={updateSettings.isPending}>
-          <Save className="w-4 h-4" />
-          {updateSettings.isPending ? 'שומר...' : 'שמור הגדרות'}
-        </Button>
-      </div>
+      {isAdmin && (
+        <div className="flex justify-end">
+          <Button onClick={handleSave} className="gap-2" disabled={updateSettings.isPending}>
+            <Save className="w-4 h-4" />
+            {updateSettings.isPending ? 'שומר...' : 'שמור הגדרות'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,8 +9,10 @@ import { ConstraintForm } from './ConstraintForm';
 import { usePlatoons } from '@/hooks/usePlatoons';
 import { PlatoonManagementDialog } from '@/components/platoons/PlatoonManagementDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/hooks/useAuth';
 
 export function SoldiersView() {
+  const { isAdmin } = useAuth();
   const { data: soldiers, isLoading, error, refetch } = useSoldiers();
   const { data: platoons = [] } = usePlatoons();
   const createSoldier = useCreateSoldier();
@@ -71,10 +73,12 @@ export function SoldiersView() {
           <h2 className="text-2xl font-bold text-foreground">ניהול חיילים</h2>
           <p className="text-muted-foreground mt-1">הוסף ונהל חיילים ואילוציהם</p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          הוסף חייל
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setShowForm(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            הוסף חייל
+          </Button>
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -101,15 +105,17 @@ export function SoldiersView() {
               ללא מחלקה ({soldiersList.filter((s) => !s.platoonId).length})
             </TabsTrigger>
           </TabsList>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPlatoonDialog(true)}
-            className="gap-2"
-          >
-            <Settings className="w-4 h-4" />
-            נהל מחלקות
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPlatoonDialog(true)}
+              className="gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              נהל מחלקות
+            </Button>
+          )}
         </div>
 
         <TabsContent value={activeTab} className="mt-0">
@@ -129,24 +135,26 @@ export function SoldiersView() {
                   {(filteredSoldiers ?? []).map((soldier) => (
                     <tr key={soldier.id} className="border-t border-border hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 text-right">
-                        <div className="flex gap-1 justify-start">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(soldier)}
-                            className="h-8 w-8"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(soldier.id)}
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {isAdmin && (
+                          <div className="flex gap-1 justify-start">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(soldier)}
+                              className="h-8 w-8"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(soldier.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="font-medium">{soldier.name}</span>

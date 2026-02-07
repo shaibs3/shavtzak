@@ -24,6 +24,7 @@ import { AssignDialog } from '@/components/schedule/AssignDialog';
 import { PlatoonStatsCards } from '@/components/schedule/PlatoonStatsCards';
 import { PlatoonFairnessChart } from '@/components/schedule/PlatoonFairnessChart';
 import { PlatoonTaskDistribution } from '@/components/schedule/PlatoonTaskDistribution';
+import { useAuth } from '@/hooks/useAuth';
 
 function asDate(value: unknown): Date {
   if (value instanceof Date) return value;
@@ -32,6 +33,7 @@ function asDate(value: unknown): Date {
 }
 
 export function ScheduleView() {
+  const { isAdmin } = useAuth();
   const { data: assignments, isLoading: assignmentsLoading } = useAssignments();
   const { data: soldiers, isLoading: soldiersLoading } = useSoldiers();
   const { data: tasks, isLoading: tasksLoading } = useTasks();
@@ -339,16 +341,18 @@ export function ScheduleView() {
               <SelectItem value="none">ללא מחלקה</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={runAutoScheduling}
-            disabled={isScheduling}
-            className="gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            {isScheduling ? 'משבץ...' : 'שיבוץ אוטומטי'}
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={runAutoScheduling}
+              disabled={isScheduling}
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              {isScheduling ? 'משבץ...' : 'שיבוץ אוטומטי'}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={goToToday}>
             היום
           </Button>
@@ -398,9 +402,11 @@ export function ScheduleView() {
             {weekDays.map((day, idx) => (
               <div
                 key={idx}
-                className="p-2 border-r border-border min-h-[100px] hover:bg-muted/20 transition-colors cursor-pointer group"
+                className={`p-2 border-r border-border min-h-[100px] transition-colors ${isAdmin ? 'hover:bg-muted/20 cursor-pointer group' : ''}`}
                 onClick={() => {
-                  setManualDialog({ open: true, taskId: task.id, dayKey: format(day, 'yyyy-MM-dd') });
+                  if (isAdmin) {
+                    setManualDialog({ open: true, taskId: task.id, dayKey: format(day, 'yyyy-MM-dd') });
+                  }
                 }}
               >
                 {(() => {
@@ -413,17 +419,19 @@ export function ScheduleView() {
                   if (slotAssignments.length === 0) {
                     return (
                       <div className="h-full flex items-center justify-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setManualDialog({ open: true, taskId: task.id, dayKey });
-                          }}
-                        >
-                          + שבץ
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setManualDialog({ open: true, taskId: task.id, dayKey });
+                            }}
+                          >
+                            + שבץ
+                          </Button>
+                        )}
                       </div>
                     );
                   }
