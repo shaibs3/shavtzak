@@ -1,5 +1,7 @@
-import { Users, ClipboardList, Calendar, Settings, LayoutDashboard } from 'lucide-react';
+import { Users, ClipboardList, Calendar, Settings, LayoutDashboard, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { Badge } from '@/components/ui/badge';
 
 interface SidebarProps {
   activeTab: string;
@@ -15,6 +17,8 @@ const navItems = [
 ];
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+  const { user, logout, isAdmin } = useAuth();
+
   return (
     <aside className="w-64 bg-military-dark min-h-screen p-4 flex flex-col shrink-0" dir="rtl">
       <div className="mb-8 px-2">
@@ -55,9 +59,41 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       </nav>
 
       <div className="mt-auto pt-4 border-t border-sidebar-border">
-        <p className="text-xs text-sidebar-foreground/40 text-center">
-          גרסה 1.0
-        </p>
+        {user && (
+          <div className="flex items-center gap-3 px-2 py-2">
+            {user.picture ? (
+              <img
+                src={user.picture}
+                alt={user.name}
+                className="w-8 h-8 rounded-full"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center">
+                <span className="text-sm font-medium text-sidebar-foreground">
+                  {user.name.charAt(0)}
+                </span>
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
+                {user.name}
+              </p>
+              <Badge
+                variant={isAdmin ? 'default' : 'secondary'}
+                className="text-xs mt-0.5"
+              >
+                {isAdmin ? 'מנהל' : 'צופה'}
+              </Badge>
+            </div>
+            <button
+              onClick={logout}
+              className="p-1.5 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+              title="התנתק"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
