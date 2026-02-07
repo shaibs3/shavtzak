@@ -1,4 +1,4 @@
-import { Users, ClipboardList, Calendar, Settings, LayoutDashboard, LogOut } from 'lucide-react';
+import { Users, ClipboardList, Calendar, Settings, LayoutDashboard, LogOut, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ interface SidebarProps {
   onTabChange: (tab: string) => void;
 }
 
-const navItems = [
+const baseNavItems = [
   { id: 'dashboard', label: 'לוח בקרה', icon: LayoutDashboard },
   { id: 'soldiers', label: 'חיילים', icon: Users },
   { id: 'tasks', label: 'משימות', icon: ClipboardList },
@@ -16,8 +16,14 @@ const navItems = [
   { id: 'settings', label: 'הגדרות', icon: Settings },
 ];
 
+const adminNavItems = [
+  { id: 'users', label: 'משתמשים', icon: UserCog },
+];
+
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { user, logout, isAdmin } = useAuth();
+
+  const navItems = isAdmin ? [...baseNavItems, ...adminNavItems] : baseNavItems;
 
   return (
     <aside className="w-64 bg-military-dark min-h-screen p-4 flex flex-col shrink-0" dir="rtl">
