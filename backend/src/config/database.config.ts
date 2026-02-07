@@ -1,5 +1,7 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const databaseConfig: TypeOrmModuleOptions = {
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
@@ -8,6 +10,10 @@ export const databaseConfig: TypeOrmModuleOptions = {
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'shavtzak',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-  synchronize: true, // Only for development
-  logging: true,
+  // NEVER use synchronize in production - use migrations instead
+  synchronize: !isProduction,
+  // Disable verbose SQL logging in production
+  logging: !isProduction,
+  // SSL for production database connections
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 };
