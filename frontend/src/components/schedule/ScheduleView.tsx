@@ -8,7 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/Select';
+} from '@/components/ui/select';
 import { useAssignments, useCreateAssignment, useDeleteAssignment } from '@/hooks/useAssignments';
 import { useSoldiers } from '@/hooks/useSoldiers';
 import { useTasks } from '@/hooks/useTasks';
