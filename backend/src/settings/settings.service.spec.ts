@@ -98,7 +98,10 @@ describe('SettingsService', () => {
 
       await expect(service.update(updateDto)).resolves.not.toThrow();
 
-      expect(mockRepository.update).toHaveBeenCalledWith(mockSettings.id, updateDto);
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        mockSettings.id,
+        updateDto,
+      );
     });
 
     it('should allow updating other settings without operational period', async () => {
@@ -111,7 +114,10 @@ describe('SettingsService', () => {
 
       await expect(service.update(updateDto)).resolves.not.toThrow();
 
-      expect(mockRepository.update).toHaveBeenCalledWith(mockSettings.id, updateDto);
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        mockSettings.id,
+        updateDto,
+      );
     });
   });
 });

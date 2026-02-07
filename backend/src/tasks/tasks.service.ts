@@ -21,7 +21,7 @@ export class TasksService {
     const task = this.tasksRepository.create(taskData);
     const savedTask = await this.tasksRepository.save(task);
 
-    const roles = requiredRoles.map(roleDto =>
+    const roles = requiredRoles.map((roleDto) =>
       this.taskRolesRepository.create({
         ...roleDto,
         task: savedTask,
@@ -59,7 +59,7 @@ export class TasksService {
       await this.taskRolesRepository.delete({ task: { id } });
 
       // Create new roles
-      const roles = requiredRoles.map(roleDto =>
+      const roles = requiredRoles.map((roleDto) =>
         this.taskRolesRepository.create({
           ...roleDto,
           task,

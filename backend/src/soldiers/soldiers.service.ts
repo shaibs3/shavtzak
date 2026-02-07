@@ -33,7 +33,10 @@ export class SoldiersService {
     return soldier;
   }
 
-  async update(id: string, updateSoldierDto: UpdateSoldierDto): Promise<Soldier> {
+  async update(
+    id: string,
+    updateSoldierDto: UpdateSoldierDto,
+  ): Promise<Soldier> {
     await this.findOne(id); // Check if exists
     await this.soldiersRepository.update(id, updateSoldierDto);
     return this.findOne(id);
@@ -56,7 +59,10 @@ export class SoldiersService {
     return this.constraintsRepository.save(constraint);
   }
 
-  async removeConstraint(soldierId: string, constraintId: string): Promise<void> {
+  async removeConstraint(
+    soldierId: string,
+    constraintId: string,
+  ): Promise<void> {
     await this.findOne(soldierId); // Verify soldier exists
     const constraint = await this.constraintsRepository.findOne({
       where: { id: constraintId },
@@ -64,7 +70,9 @@ export class SoldiersService {
     });
 
     if (!constraint) {
-      throw new NotFoundException(`Constraint with ID ${constraintId} not found`);
+      throw new NotFoundException(
+        `Constraint with ID ${constraintId} not found`,
+      );
     }
 
     if (constraint.soldier.id !== soldierId) {
@@ -76,10 +84,13 @@ export class SoldiersService {
     await this.constraintsRepository.remove(constraint);
   }
 
-  async bulkUpdate(soldierIds: string[], platoonId: string | null): Promise<{ updatedCount: number }> {
+  async bulkUpdate(
+    soldierIds: string[],
+    platoonId: string | null,
+  ): Promise<{ updatedCount: number }> {
     const result = await this.soldiersRepository.update(
       { id: In(soldierIds) },
-      { platoonId: platoonId }
+      { platoonId: platoonId },
     );
 
     return { updatedCount: result.affected || 0 };

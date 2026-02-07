@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Assignment } from './entities/assignment.entity';
@@ -48,14 +52,19 @@ export class AssignmentsService {
   }
 
   async findOne(id: string): Promise<Assignment> {
-    const assignment = await this.assignmentsRepository.findOne({ where: { id } });
+    const assignment = await this.assignmentsRepository.findOne({
+      where: { id },
+    });
     if (!assignment) {
       throw new NotFoundException(`Assignment with ID ${id} not found`);
     }
     return assignment;
   }
 
-  async update(id: string, updateAssignmentDto: UpdateAssignmentDto): Promise<Assignment> {
+  async update(
+    id: string,
+    updateAssignmentDto: UpdateAssignmentDto,
+  ): Promise<Assignment> {
     await this.findOne(id); // Check if exists
 
     // Validate operational period if dates are being updated

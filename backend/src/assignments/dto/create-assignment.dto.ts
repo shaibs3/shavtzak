@@ -10,7 +10,10 @@ export class CreateAssignmentDto {
   @IsUUID()
   soldierId: string;
 
-  @ApiProperty({ example: 'commander', description: 'Role name (can be any string, including custom roles)' })
+  @ApiProperty({
+    example: 'commander',
+    description: 'Role name (can be any string, including custom roles)',
+  })
   @IsString()
   role: string;
 

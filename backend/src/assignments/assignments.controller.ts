@@ -48,7 +48,10 @@ export class AssignmentsController {
   @ApiOperation({ summary: 'Update assignment' })
   @ApiResponse({ status: 200, description: 'Assignment updated successfully' })
   @ApiResponse({ status: 404, description: 'Assignment not found' })
-  update(@Param('id') id: string, @Body() updateAssignmentDto: UpdateAssignmentDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateAssignmentDto: UpdateAssignmentDto,
+  ) {
     return this.assignmentsService.update(id, updateAssignmentDto);
   }
 

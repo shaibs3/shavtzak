@@ -96,7 +96,7 @@ export class SoldiersController {
   bulkUpdate(@Body() bulkUpdateDto: BulkUpdateSoldiersDto) {
     return this.soldiersService.bulkUpdate(
       bulkUpdateDto.soldierIds,
-      bulkUpdateDto.platoonId ?? null
+      bulkUpdateDto.platoonId ?? null,
     );
   }
 }

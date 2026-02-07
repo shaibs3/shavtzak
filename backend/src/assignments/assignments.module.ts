@@ -6,10 +6,7 @@ import { Assignment } from './entities/assignment.entity';
 import { SettingsModule } from '../settings/settings.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Assignment]),
-    SettingsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Assignment]), SettingsModule],
   controllers: [AssignmentsController],
   providers: [AssignmentsService],
   exports: [AssignmentsService],

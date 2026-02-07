@@ -45,7 +45,9 @@ describe('AssignmentsService - Operational Period Filtering', () => {
     }).compile();
 
     service = module.get<AssignmentsService>(AssignmentsService);
-    repository = module.get<Repository<Assignment>>(getRepositoryToken(Assignment));
+    repository = module.get<Repository<Assignment>>(
+      getRepositoryToken(Assignment),
+    );
     settingsService = module.get<SettingsService>(SettingsService);
 
     jest.clearAllMocks();
@@ -71,7 +73,9 @@ describe('AssignmentsService - Operational Period Filtering', () => {
       const expectedEndDate = new Date('2026-05-31');
       expectedEndDate.setHours(23, 59, 59, 999);
 
-      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('assignment');
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'assignment',
+      );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'assignment.startTime >= :startDate',
         { startDate: mockSettings.operationalStartDate },
@@ -97,7 +101,9 @@ describe('AssignmentsService - Operational Period Filtering', () => {
 
       await service.findAll();
 
-      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('assignment');
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'assignment',
+      );
       expect(mockQueryBuilder.andWhere).not.toHaveBeenCalled();
     });
   });

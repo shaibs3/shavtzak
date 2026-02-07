@@ -97,7 +97,7 @@ export class PlatoonsService {
   async autoAssign(platoonIds: string[]): Promise<{ assignedCount: number }> {
     // Validate all platoons exist
     const platoons = await Promise.all(
-      platoonIds.map(id => this.findOne(id))
+      platoonIds.map((id) => this.findOne(id)),
     );
 
     // Get all soldiers without platoon
