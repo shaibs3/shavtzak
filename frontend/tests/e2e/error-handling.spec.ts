@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { loginAsTestUser } from './helpers/auth';
 
 test.describe('Error Handling', () => {
+  test.beforeEach(async ({ page }) => {
+    await loginAsTestUser(page);
+  });
+
   test('should show error toast when create operation fails', async ({ page }) => {
     // Navigate to app
     await page.goto('/');

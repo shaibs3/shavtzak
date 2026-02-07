@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { loginAsTestUser } from './helpers/auth';
 
 test.describe('Soldiers CRUD Operations', () => {
   test.beforeEach(async ({ page }) => {
+    // Authenticate before each test
+    await loginAsTestUser(page);
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     // Navigate to soldiers tab

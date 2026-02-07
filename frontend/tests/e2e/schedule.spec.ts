@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { loginAsTestUser } from './helpers/auth';
 
 test.describe('Schedule and Assignments', () => {
   test.beforeEach(async ({ page }) => {
+    await loginAsTestUser(page);
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     // Navigate to schedule tab

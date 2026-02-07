@@ -22,4 +22,19 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
     return this.jwtService.sign(payload);
   }
+
+  async createTestUser(): Promise<string> {
+    const testProfile: GoogleProfile = {
+      id: 'test-user-id',
+      email: 'test@example.com',
+      displayName: 'Test User',
+    };
+
+    let user = await this.usersService.findByGoogleId(testProfile.id);
+    if (!user) {
+      user = await this.usersService.createFromGoogle(testProfile);
+    }
+
+    return this.generateJwt(user);
+  }
 }

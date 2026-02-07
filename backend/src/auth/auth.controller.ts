@@ -1,4 +1,12 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -46,5 +54,18 @@ export class AuthController {
       picture: user.picture,
       role: user.role,
     };
+  }
+
+  @Public()
+  @Post('test-login')
+  @ApiOperation({ summary: 'Test login (non-production only)' })
+  async testLogin() {
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+    if (nodeEnv === 'production') {
+      throw new ForbiddenException('Test login not available in production');
+    }
+
+    const token = await this.authService.createTestUser();
+    return { token };
   }
 }
