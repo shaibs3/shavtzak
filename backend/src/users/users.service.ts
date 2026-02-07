@@ -49,7 +49,7 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  async updateRole(id: string, role: UserRole): Promise<User> {
+  async updateRole(id: string, role: UserRole): Promise<User | null> {
     await this.usersRepository.update(id, { role });
     return this.findById(id);
   }
