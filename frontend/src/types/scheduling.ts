@@ -21,11 +21,12 @@ export interface Constraint {
 export type Role = string;
 
 // Default roles (always available)
-// Note: 'soldier' is implicit - everyone is a soldier by default
-export const DEFAULT_ROLES: Role[] = ['commander', 'driver'];
+// 'soldier' = any soldier (no special role required)
+export const DEFAULT_ROLES: Role[] = ['soldier', 'commander', 'driver'];
 
 // Default role labels
 export const DEFAULT_ROLE_LABELS: Record<string, string> = {
+  soldier: 'חייל',
   commander: 'מפקד',
   driver: 'נהג',
 };
@@ -39,8 +40,10 @@ export function getRoleLabel(role: Role, customRoleLabels?: Record<string, strin
 }
 
 // Helper function to get all available roles (default + custom)
+// Filters out duplicates (in case a custom role matches a default role)
 export function getAllRoles(customRoles: string[] = []): Role[] {
-  return [...DEFAULT_ROLES, ...customRoles];
+  const filteredCustomRoles = customRoles.filter(role => !DEFAULT_ROLES.includes(role));
+  return [...DEFAULT_ROLES, ...filteredCustomRoles];
 }
 
 export interface Task {
