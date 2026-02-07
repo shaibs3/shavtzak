@@ -35,6 +35,11 @@ export class AuthService {
       user = await this.usersService.createFromGoogle(testProfile);
     }
 
+    // Ensure test user is always an admin for E2E tests
+    if (user.role !== 'admin') {
+      user = await this.usersService.updateRole(user.id, 'admin');
+    }
+
     return this.generateJwt(user);
   }
 }
