@@ -30,8 +30,12 @@ test.describe('Tasks CRUD Operations', () => {
     await page.fill('input[id="shiftDuration"]', '8');
     await page.fill('input[id="restTime"]', '12');
 
+    // Add a required role (form requires at least one)
+    await page.click('button:has-text("הוסף תפקיד")');
+    await page.waitForTimeout(500);
+
     // Submit
-    await page.click('button:has-text("הוסף משימה")');
+    await page.click('button[type="submit"]:has-text("הוסף משימה")');
     await page.waitForSelector('text=המשימה נוספה בהצלחה', { timeout: 10000 });
 
     // Verify task appears
@@ -46,7 +50,9 @@ test.describe('Tasks CRUD Operations', () => {
     await page.fill('input[id="shiftStartHour"]', '20');
     await page.fill('input[id="shiftDuration"]', '8');
     await page.fill('input[id="restTime"]', '12');
-    await page.click('button:has-text("הוסף משימה")');
+    await page.click('button:has-text("הוסף תפקיד")');
+    await page.waitForTimeout(500);
+    await page.click('button[type="submit"]:has-text("הוסף משימה")');
     await page.waitForSelector('text=המשימה נוספה בהצלחה', { timeout: 10000 });
 
     // Edit the task - find card with this task and click edit button
@@ -88,7 +94,9 @@ test.describe('Tasks CRUD Operations', () => {
     await page.fill('input[id="shiftStartHour"]', '22');
     await page.fill('input[id="shiftDuration"]', '6');
     await page.fill('input[id="restTime"]', '12');
-    await page.click('button:has-text("הוסף משימה")');
+    await page.click('button:has-text("הוסף תפקיד")');
+    await page.waitForTimeout(500);
+    await page.click('button[type="submit"]:has-text("הוסף משימה")');
     await page.waitForSelector('text=המשימה נוספה בהצלחה', { timeout: 10000 });
 
     // Delete the task
