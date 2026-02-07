@@ -14,6 +14,7 @@ import { PlatoonsService } from './platoons.service';
 import { CreatePlatoonDto } from './dto/create-platoon.dto';
 import { UpdatePlatoonDto } from './dto/update-platoon.dto';
 import { AutoAssignDto } from './dto/auto-assign.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('platoons')
 @Controller('platoons')
@@ -21,6 +22,7 @@ export class PlatoonsController {
   constructor(private readonly platoonsService: PlatoonsService) {}
 
   @Post()
+  @Roles('admin')
   @ApiOperation({ summary: 'Create a new platoon' })
   @ApiResponse({ status: 201, description: 'Platoon created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
@@ -44,6 +46,7 @@ export class PlatoonsController {
   }
 
   @Patch(':id')
+  @Roles('admin')
   @ApiOperation({ summary: 'Update platoon' })
   @ApiResponse({ status: 200, description: 'Platoon updated successfully' })
   @ApiResponse({ status: 404, description: 'Platoon not found' })
@@ -52,6 +55,7 @@ export class PlatoonsController {
   }
 
   @Delete(':id')
+  @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete platoon' })
   @ApiResponse({ status: 204, description: 'Platoon deleted successfully' })
@@ -65,6 +69,7 @@ export class PlatoonsController {
   }
 
   @Post('auto-assign')
+  @Roles('admin')
   @ApiOperation({ summary: 'Auto-assign soldiers without platoon' })
   @ApiResponse({ status: 200, description: 'Soldiers assigned successfully' })
   autoAssign(@Body() autoAssignDto: AutoAssignDto) {
