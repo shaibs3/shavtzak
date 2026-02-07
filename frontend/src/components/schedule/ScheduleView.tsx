@@ -14,7 +14,7 @@ import { useSoldiers } from '@/hooks/useSoldiers';
 import { useTasks } from '@/hooks/useTasks';
 import { useSettings } from '@/hooks/useSettings';
 import { usePlatoons } from '@/hooks/usePlatoons';
-import { roleLabels } from '@/types/scheduling';
+import { getRoleLabel } from '@/types/scheduling';
 import { format, addDays, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
@@ -390,7 +390,7 @@ export function ScheduleView() {
               <div className="flex flex-wrap gap-1 mt-1">
                 {task.requiredRoles.map((role, idx) => (
                   <Badge key={idx} variant="secondary" className="text-xs">
-                    {role.count} {roleLabels[role.role]}
+                    {role.count} {getRoleLabel(role.role)}
                   </Badge>
                 ))}
               </div>
@@ -437,7 +437,7 @@ export function ScheduleView() {
                         >
                           <div className="flex items-center gap-1">
                             <span className="truncate">
-                              {soldierById.get(a.soldierId)?.name ?? 'חייל'} · {roleLabels[a.role]}
+                              {soldierById.get(a.soldierId)?.name ?? 'חייל'} · {getRoleLabel(a.role)}
                             </span>
                             {(() => {
                               const soldier = soldierById.get(a.soldierId);

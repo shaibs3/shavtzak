@@ -19,6 +19,7 @@ export class SettingsService {
       const defaultSettings = this.settingsRepository.create({
         minBasePresence: 75,
         totalSoldiers: 20,
+        customRoles: null,
       });
       return this.settingsRepository.save(defaultSettings);
     }

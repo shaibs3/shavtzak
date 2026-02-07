@@ -18,14 +18,30 @@ export interface Constraint {
   reason?: string;
 }
 
-export type Role = 'commander' | 'driver' | 'radio_operator' | 'soldier';
+export type Role = string;
 
-export const roleLabels: Record<Role, string> = {
+// Default roles (always available)
+// Note: 'soldier' is implicit - everyone is a soldier by default
+export const DEFAULT_ROLES: Role[] = ['commander', 'driver'];
+
+// Default role labels
+export const DEFAULT_ROLE_LABELS: Record<string, string> = {
   commander: 'מפקד',
   driver: 'נהג',
-  radio_operator: 'פקל',
-  soldier: 'חייל',
 };
+
+// Helper function to get role label (supports custom roles)
+export function getRoleLabel(role: Role, customRoleLabels?: Record<string, string>): string {
+  if (customRoleLabels && customRoleLabels[role]) {
+    return customRoleLabels[role];
+  }
+  return DEFAULT_ROLE_LABELS[role] || role;
+}
+
+// Helper function to get all available roles (default + custom)
+export function getAllRoles(customRoles: string[] = []): Role[] {
+  return [...DEFAULT_ROLES, ...customRoles];
+}
 
 export interface Task {
   id: string;
@@ -66,6 +82,7 @@ export interface Settings {
   totalSoldiers: number;
   operationalStartDate: string | null;
   operationalEndDate: string | null;
+  customRoles: string[] | null;
   updatedAt: string;
 }
 
@@ -95,4 +112,4 @@ export type UpdateTaskDto = Partial<CreateTaskDto>;
 export type CreateAssignmentDto = Omit<Assignment, 'id'>;
 export type UpdateAssignmentDto = Partial<CreateAssignmentDto>;
 
-export type UpdateSettingsDto = Partial<ScheduleSettings>;
+export type UpdateSettingsDto = Partial<Omit<Settings, 'id' | 'updatedAt'>>;

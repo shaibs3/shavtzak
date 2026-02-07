@@ -1,4 +1,4 @@
-import { IsInt, Min, Max, IsOptional, IsDateString } from 'class-validator';
+import { IsInt, Min, Max, IsOptional, IsDateString, IsArray, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateSettingsDto {
@@ -32,4 +32,14 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsDateString()
   operationalEndDate?: string;
+
+  @ApiProperty({
+    example: ['medic', 'engineer'],
+    description: 'Custom roles that can be assigned to soldiers',
+    required: false
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  customRoles?: string[];
 }

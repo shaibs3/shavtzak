@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
-import { roleLabels, Task } from '@/types/scheduling';
+import { getRoleLabel, Task } from '@/types/scheduling';
 import { TaskForm } from './TaskForm';
 
 export function TasksView() {
@@ -114,7 +114,7 @@ export function TasksView() {
             <div className="flex flex-wrap gap-1 mb-4 w-full justify-end">
               {task.requiredRoles.map((role, idx) => (
                 <Badge key={idx} variant="outline" className="text-xs">
-                  {role.count} {roleLabels[role.role]}
+                  {role.count} {getRoleLabel(role.role)}
                 </Badge>
               ))}
             </div>

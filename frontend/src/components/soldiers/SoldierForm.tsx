@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Role, roleLabels, Soldier } from '@/types/scheduling';
+import { Role, getRoleLabel, getAllRoles, Soldier } from '@/types/scheduling';
 import { X } from 'lucide-react';
 import { usePlatoons } from '@/hooks/usePlatoons';
+import { useSettings } from '@/hooks/useSettings';
 import {
   Select,
   SelectContent,
@@ -20,13 +21,25 @@ interface SoldierFormProps {
   onCancel: () => void;
 }
 
-const allRoles: Role[] = ['commander', 'driver', 'radio_operator', 'soldier'];
-
 export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
   const { data: platoons = [] } = usePlatoons();
+  const { data: settings } = useSettings();
+  const allRoles = useMemo(() => {
+    if (!settings) {
+      return getAllRoles([]);
+    }
+    const customRoles = settings.customRoles;
+    const rolesArray = customRoles === null || customRoles === undefined 
+      ? [] 
+      : (Array.isArray(customRoles) ? customRoles : []);
+    return getAllRoles(rolesArray);
+  }, [settings]);
+  
   const [name, setName] = useState(soldier?.name || '');
   const [rank, setRank] = useState(soldier?.rank || '');
-  const [roles, setRoles] = useState<Role[]>(soldier?.roles || ['soldier']);
+  // Filter out 'soldier' role - it's implicit for everyone
+  const initialRoles = soldier?.roles?.filter(r => r !== 'soldier') || [];
+  const [roles, setRoles] = useState<Role[]>(initialRoles);
   const [maxVacationDays, setMaxVacationDays] = useState(soldier?.maxVacationDays || 5);
   const [usedVacationDays, setUsedVacationDays] = useState(soldier?.usedVacationDays || 0);
   const [platoonId, setPlatoonId] = useState<string | null>(
@@ -37,29 +50,25 @@ export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
     setRoles(prev => {
       if (prev.includes(role)) {
         // מסירים תפקיד
-        const newRoles = prev.filter(r => r !== role);
-        // אם נשארנו בלי תפקידים, מוסיפים "חייל" אוטומטית
-        return newRoles.length === 0 ? ['soldier'] : newRoles;
+        return prev.filter(r => r !== role);
       } else {
         // מוסיפים תפקיד
-        const newRoles = [...prev, role];
-        // אם הוספנו תפקיד מיוחד (לא חייל), מסירים את "חייל" אוטומטית
-        if (role !== 'soldier' && newRoles.includes('soldier')) {
-          return newRoles.filter(r => r !== 'soldier');
-        }
-        return newRoles;
+        return [...prev, role];
       }
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !rank.trim() || roles.length === 0) return;
+    if (!name.trim() || !rank.trim()) return;
+
+    // Filter out 'soldier' role before submitting - it's implicit
+    const rolesToSubmit = roles.filter(r => r !== 'soldier');
 
     onSubmit({
       name: name.trim(),
       rank: rank.trim(),
-      roles,
+      roles: rolesToSubmit,
       maxVacationDays,
       usedVacationDays,
       platoonId,
@@ -113,7 +122,7 @@ export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
                     checked={roles.includes(role)}
                     onCheckedChange={() => handleRoleToggle(role)}
                   />
-                  <span className="text-sm">{roleLabels[role]}</span>
+                  <span className="text-sm">{getRoleLabel(role)}</span>
                 </label>
               ))}
             </div>

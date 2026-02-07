@@ -3,7 +3,7 @@ import { Plus, Edit2, Trash2, Calendar, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSoldiers, useCreateSoldier, useUpdateSoldier, useDeleteSoldier } from '@/hooks/useSoldiers';
-import { roleLabels, Soldier } from '@/types/scheduling';
+import { getRoleLabel, Soldier } from '@/types/scheduling';
 import { SoldierForm } from './SoldierForm';
 import { ConstraintForm } from './ConstraintForm';
 import { usePlatoons } from '@/hooks/usePlatoons';
@@ -154,18 +154,15 @@ export function SoldiersView() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex flex-wrap gap-1 justify-start">
                           {soldier.roles
-                            .filter((role) => {
-                              // אם יש תפקיד אחר מלבד "חייל", לא מציגים את "חייל"
-                              if (role === 'soldier' && soldier.roles.length > 1) {
-                                return false;
-                              }
-                              return true;
-                            })
+                            .filter((role) => role !== 'soldier') // Don't show 'soldier' - it's implicit
                             .map((role) => (
                               <Badge key={role} variant="secondary" className="text-xs">
-                                {roleLabels[role]}
+                                {getRoleLabel(role)}
                               </Badge>
                             ))}
+                          {soldier.roles.filter(r => r !== 'soldier').length === 0 && (
+                            <span className="text-xs text-muted-foreground">ללא תפקידים מיוחדים</span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">

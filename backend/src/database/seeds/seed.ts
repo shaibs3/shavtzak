@@ -80,14 +80,12 @@ export async function seed(dataSource: DataSource) {
   const ranks = ['טוראי', 'רב טוראי', 'סמל', 'סמל ראשון', 'רס"ל', 'רס"ר', 'סגן', 'סרן'];
 
   const allRoles = [
-    ['soldier'],
-    ['soldier'],
-    ['soldier'],
-    ['driver', 'soldier'],
-    ['driver', 'soldier'],
-    ['radio_operator', 'soldier'],
-    ['radio_operator', 'soldier'],
-    ['commander', 'soldier'],
+    [], // No special roles - everyone is a soldier by default
+    [],
+    [],
+    ['driver'],
+    ['driver'],
+    ['commander'],
   ];
 
   const constraintTypes = ['vacation', 'unavailable', 'medical'];
@@ -153,12 +151,8 @@ export async function seed(dataSource: DataSource) {
   });
   await taskRoleRepo.save(morningCommander);
 
-  const morningSoldiers = taskRoleRepo.create({
-    role: 'soldier',
-    count: 2,
-    task: morningTask,
-  });
-  await taskRoleRepo.save(morningSoldiers);
+  // Note: No 'soldier' role needed - everyone is a soldier by default
+  // If you need generic soldiers, add them as a custom role or use other roles
 
   const eveningTask = taskRepo.create({
     name: 'משמרת ערב',
@@ -177,12 +171,7 @@ export async function seed(dataSource: DataSource) {
   });
   await taskRoleRepo.save(eveningDriver);
 
-  const eveningSoldiers = taskRoleRepo.create({
-    role: 'soldier',
-    count: 2,
-    task: eveningTask,
-  });
-  await taskRoleRepo.save(eveningSoldiers);
+  // Note: No 'soldier' role needed - everyone is a soldier by default
 
   console.log(`Created ${await taskRepo.count()} tasks`);
   console.log(`Created ${await taskRoleRepo.count()} task roles`);

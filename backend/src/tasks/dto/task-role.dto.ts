@@ -1,10 +1,9 @@
-import { IsString, IsInt, Min, IsIn } from 'class-validator';
+import { IsString, IsInt, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class TaskRoleDto {
-  @ApiProperty({ example: 'commander', enum: ['commander', 'driver', 'radio_operator', 'soldier'] })
+  @ApiProperty({ example: 'commander', description: 'Role name (can be any string, including custom roles)' })
   @IsString()
-  @IsIn(['commander', 'driver', 'radio_operator', 'soldier'])
   role: string;
 
   @ApiProperty({ example: 1 })

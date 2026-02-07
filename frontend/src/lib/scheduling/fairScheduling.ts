@@ -184,7 +184,14 @@ export function buildFairWeekSchedule({ weekStart, soldiers, tasks, platoons, ex
             const alreadyUsedInThisSlot = new Set(assignments.map(a => a.soldierId));
 
             const candidates = platoonSoldiers
-              .filter((s) => s.roles.includes(needed.role))
+              .filter((s) => {
+                // If role is 'soldier', everyone can fill it (everyone is a soldier by default)
+                if (needed.role === 'soldier') {
+                  return true;
+                }
+                // Otherwise, check if soldier has the required role
+                return s.roles.includes(needed.role);
+              })
               .filter((s) => !alreadyUsedInThisSlot.has(s.id))
               .filter((s) => soldierIsAvailableForInterval(s, start, end))
               .filter((s) => {

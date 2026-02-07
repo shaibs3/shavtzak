@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Role, roleLabels, Task, TaskRole } from '@/types/scheduling';
+import { Role, getRoleLabel, getAllRoles, Task, TaskRole } from '@/types/scheduling';
+import { useSettings } from '@/hooks/useSettings';
 
 interface TaskFormProps {
   task?: Task;
@@ -13,9 +14,25 @@ interface TaskFormProps {
   onCancel: () => void;
 }
 
-const allRoles: Role[] = ['commander', 'driver', 'radio_operator', 'soldier'];
-
 export function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
+  const { data: settings, isLoading: settingsLoading } = useSettings();
+  const allRoles = useMemo(() => {
+    if (!settings) {
+      // If settings haven't loaded yet, return default roles
+      return getAllRoles([]);
+    }
+    const customRoles = settings.customRoles;
+    // Handle both null, undefined, and array cases
+    let rolesArray: string[] = [];
+    if (customRoles === null || customRoles === undefined) {
+      rolesArray = [];
+    } else if (Array.isArray(customRoles)) {
+      rolesArray = customRoles;
+    }
+    
+    return getAllRoles(rolesArray);
+  }, [settings]);
+  
   const [name, setName] = useState(task?.name || '');
   const [description, setDescription] = useState(task?.description || '');
   const [shiftStartHour, setShiftStartHour] = useState(task?.shiftStartHour ?? 8);
@@ -23,7 +40,7 @@ export function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   const [restTime, setRestTime] = useState(task?.restTimeBetweenShifts || 12);
   const [isActive, setIsActive] = useState(task?.isActive ?? true);
   const [requiredRoles, setRequiredRoles] = useState<TaskRole[]>(
-    task?.requiredRoles || [{ role: 'soldier', count: 1 }]
+    task?.requiredRoles || []
   );
 
   const handleAddRole = () => {
@@ -176,7 +193,7 @@ export function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
                             requiredRoles.some((r, i) => r.role === role && i !== index)
                           }
                         >
-                          {roleLabels[role]}
+                          {getRoleLabel(role)}
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsDateString, IsBoolean, IsIn } from 'class-validator';
+import { IsString, IsUUID, IsDateString, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateAssignmentDto {
@@ -10,9 +10,8 @@ export class CreateAssignmentDto {
   @IsUUID()
   soldierId: string;
 
-  @ApiProperty({ example: 'commander', enum: ['commander', 'driver', 'radio_operator', 'soldier'] })
+  @ApiProperty({ example: 'commander', description: 'Role name (can be any string, including custom roles)' })
   @IsString()
-  @IsIn(['commander', 'driver', 'radio_operator', 'soldier'])
   role: string;
 
   @ApiProperty({ example: '2026-01-25T08:00:00Z' })
