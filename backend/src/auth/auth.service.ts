@@ -37,7 +37,10 @@ export class AuthService {
 
     // Ensure test user is always an admin for E2E tests
     if (user.role !== 'admin') {
-      user = await this.usersService.updateRole(user.id, 'admin');
+      const updatedUser = await this.usersService.updateRole(user.id, 'admin');
+      if (updatedUser) {
+        user = updatedUser;
+      }
     }
 
     return this.generateJwt(user);
