@@ -117,6 +117,16 @@ jobs:
           DB_PASSWORD: postgres
           DB_NAME: shavtzak_test
 
+      - name: Seed test data
+        run: npm run seed
+        working-directory: backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: shavtzak_test
+
       - name: Start backend
         run: npm run start:prod &
         working-directory: backend
