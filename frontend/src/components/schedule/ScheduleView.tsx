@@ -402,7 +402,7 @@ export function ScheduleView() {
             {weekDays.map((day, idx) => (
               <div
                 key={idx}
-                className={`p-2 border-r border-border min-h-[100px] transition-colors ${isAdmin ? 'hover:bg-muted/20 cursor-pointer group' : ''}`}
+                className={`p-2 border-r border-border min-h-[100px] overflow-hidden transition-colors ${isAdmin ? 'hover:bg-muted/20 cursor-pointer group' : ''}`}
                 onClick={() => {
                   if (isAdmin) {
                     setManualDialog({ open: true, taskId: task.id, dayKey: format(day, 'yyyy-MM-dd') });
@@ -441,9 +441,9 @@ export function ScheduleView() {
                       {slotAssignments.map((a) => (
                         <div
                           key={a.id}
-                          className="flex items-center justify-between rounded-md border border-border bg-background/50 px-2 py-1 text-xs"
+                          className="flex items-center justify-between gap-1 rounded-md border border-border bg-background/50 px-2 py-1 text-xs overflow-hidden"
                         >
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 min-w-0 flex-1">
                             <span className="truncate">
                               {soldierById.get(a.soldierId)?.name ?? 'חייל'} · {getRoleLabel(a.role)}
                             </span>
