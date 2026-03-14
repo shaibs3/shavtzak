@@ -5,6 +5,7 @@ import { Task } from '../../tasks/entities/task.entity';
 import { TaskRole } from '../../tasks/entities/task-role.entity';
 import { Settings } from '../../settings/entities/settings.entity';
 import { Assignment } from '../../assignments/entities/assignment.entity';
+import { Platoon } from '../../platoons/entities/platoon.entity';
 
 export async function seed(dataSource: DataSource) {
   console.log('Starting database seed...');
@@ -17,6 +18,8 @@ export async function seed(dataSource: DataSource) {
   const settingsRepo = dataSource.getRepository(Settings);
   // assignmentRepo used for deletion only
   void dataSource.getRepository(Assignment);
+
+  const platoonRepo = dataSource.getRepository(Platoon);
 
   // Clear existing data (in reverse FK order)
   console.log('Clearing existing data...');
@@ -32,7 +35,29 @@ export async function seed(dataSource: DataSource) {
 
   await dataSource.createQueryBuilder().delete().from(Soldier).execute();
 
+  await dataSource.createQueryBuilder().delete().from(Platoon).execute();
+
   await dataSource.createQueryBuilder().delete().from(Settings).execute();
+
+  // Create 5 platoons
+  console.log('Creating platoons...');
+
+  const platoonData = [
+    { name: "מחלקה א'", color: '#3B82F6', commander: 'סרן יוסי כהן' },
+    { name: "מחלקה ב'", color: '#10B981', commander: 'סרן דני לוי' },
+    { name: "מחלקה ג'", color: '#F59E0B', commander: 'סרן מיכל אברהם' },
+    { name: "מחלקה ד'", color: '#EF4444', commander: 'סרן שרון מזרחי' },
+    { name: "מחלקה ה'", color: '#8B5CF6', commander: 'סרן עומר דהן' },
+  ];
+
+  const platoons: Platoon[] = [];
+  for (const data of platoonData) {
+    const platoon = platoonRepo.create(data);
+    await platoonRepo.save(platoon);
+    platoons.push(platoon);
+  }
+
+  console.log(`Created ${platoons.length} platoons`);
 
   // Create 70 soldiers with constraints
   console.log('Creating 70 soldiers...');
@@ -184,6 +209,9 @@ export async function seed(dataSource: DataSource) {
 
   const soldiers: Soldier[] = [];
 
+  // Distribute 70 soldiers across 5 platoons (14 per platoon)
+  const soldiersPerPlatoon = 14;
+
   for (let i = 0; i < 70; i++) {
     const firstName = firstNames[i % firstNames.length];
     const lastName =
@@ -193,12 +221,18 @@ export async function seed(dataSource: DataSource) {
     const maxVacationDays = Math.floor(Math.random() * 5) + 5; // 5-9 days
     const usedVacationDays = Math.floor(Math.random() * (maxVacationDays / 2)); // 0 to half used
 
+    // Assign to platoon (14 soldiers per platoon)
+    const platoonIndex = Math.floor(i / soldiersPerPlatoon);
+    const platoon = platoons[platoonIndex];
+
     const soldier = soldierRepo.create({
       name: `${firstName} ${lastName}`,
       rank,
       roles,
       maxVacationDays,
       usedVacationDays,
+      platoon: platoon,
+      platoonId: platoon.id,
     });
     await soldierRepo.save(soldier);
     soldiers.push(soldier);
