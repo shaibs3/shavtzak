@@ -40,13 +40,21 @@ test.describe('Settings Management', () => {
     await page.reload();
     await page.waitForLoadState('networkidle');
 
+    // Navigate back to settings after reload
+    await page.click('button:has-text("הגדרות")');
+    await page.waitForSelector('text=הגדרות מערכת', { timeout: 10000 });
+
+    // Re-get locators after navigation
+    const updatedTotalSoldiersInput = page.locator('input[id="totalSoldiers"]');
+    const updatedMinPresenceInput = page.locator('input[id="minPresence"]');
+
     // Verify values persisted
-    expect(await totalSoldiersInput.inputValue()).toBe('75');
-    expect(await minPresenceInput.inputValue()).toBe('80');
+    expect(await updatedTotalSoldiersInput.inputValue()).toBe('75');
+    expect(await updatedMinPresenceInput.inputValue()).toBe('80');
 
     // Restore original values
-    await totalSoldiersInput.fill(currentTotal);
-    await minPresenceInput.fill(currentPresence);
+    await updatedTotalSoldiersInput.fill(currentTotal);
+    await updatedMinPresenceInput.fill(currentPresence);
     await page.click('button:has-text("שמור הגדרות")');
     await page.waitForSelector('text=ההגדרות עודכנו בהצלחה', { timeout: 10000 });
   });
