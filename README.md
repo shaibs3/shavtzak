@@ -2,11 +2,11 @@
 
 <div align="center">
 
+![Shavtzak Logo](frontend/public/lavi-logo.png)
+
 **Military Unit Scheduling & Assignment Management System**
 
-A full-stack monorepo featuring automated shift scheduling with constraint-aware algorithms
-
-[Quick Start](#quick-start) • [Architecture](#architecture) • [Features](#features) • [Development](#development) • [Deployment](#deployment)
+[Features](#features) • [Tech Stack](#tech-stack) • [Getting Started](#getting-started) • [Architecture](#architecture) • [API](#api-documentation)
 
 </div>
 
@@ -14,236 +14,171 @@ A full-stack monorepo featuring automated shift scheduling with constraint-aware
 
 ## Overview
 
-Shavtzak (שבצ״ק - Scheduling) is a comprehensive military unit scheduling system that automates soldier assignments to shifts and tasks. The system consists of a React frontend with a NestJS backend, providing an intuitive Hebrew interface for managing personnel, defining tasks, and generating fair, constraint-aware schedules.
+Shavtzak (שבצ״ק - Scheduling) is a comprehensive military unit scheduling system designed to automate soldier assignments to shifts and tasks. Built with modern web technologies, it provides an intuitive Hebrew interface for managing personnel, defining tasks, and generating fair, constraint-aware schedules.
 
 ### Key Capabilities
 
-- 📋 **Smart Auto-Scheduling**: Algorithm considering constraints, rest periods, and workload fairness
-- 👥 **Personnel Management**: Complete soldier lifecycle with roles, ranks, and vacation tracking
-- 📅 **Constraint System**: Manage availability (vacation, medical leave, unavailable dates)
-- 🔄 **Real-time Sync**: React Query for optimistic updates and cache management
-- 📊 **Fairness Analytics**: Visual distribution of assignments across personnel
-- 🌐 **Full Persistence**: PostgreSQL database with TypeORM
-- ✅ **End-to-End Testing**: Playwright test suite with 21 comprehensive scenarios
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- **Node.js** 18+ and npm
-- **PostgreSQL** 15+ (or use Docker Compose)
-- **Git**
-- **Make** (optional, for simplified commands)
-
-### Option 1: Using Makefile (Easiest)
-
-```bash
-# 1. Clone and install
-git clone <repository-url>
-cd shavtzak-integration
-make install          # Installs all dependencies
-
-# 2. Setup database
-make db-up            # Start PostgreSQL
-make seed             # Seed with sample data
-
-# 3. Start everything
-make dev              # Starts database + backend + frontend
-```
-
-**Available Commands:**
-```bash
-make help             # Show all available commands
-make dev              # Start complete development environment
-make backend          # Start backend only
-make frontend         # Start frontend only
-make stop             # Stop all services
-make db-reset         # Reset database (destroys data)
-make test             # Run backend tests
-make test-e2e         # Run E2E tests
-```
-
-### Option 2: Docker Compose (Manual)
-
-```bash
-# 1. Clone the repository
-git clone <repository-url>
-cd shavtzak-integration
-
-# 2. Start PostgreSQL
-docker-compose up -d
-
-# 3. Install dependencies
-cd backend && npm install
-cd ../frontend && npm install
-
-# 4. Setup database
-cd ../backend
-npm run seed  # Creates schema and seeds 70 soldiers, 3 tasks
-
-# 5. Start backend (Terminal 1)
-npm run start:dev  # Runs on http://localhost:3000
-
-# 6. Start frontend (Terminal 2)
-cd ../frontend
-npm run dev  # Runs on http://localhost:5173
-```
-
-### Option 3: Local PostgreSQL (Without Docker)
-
-```bash
-# 1. Create database
-createdb shabtzaq
-
-# 2. Configure environment
-cd backend
-cat > .env << EOF
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_USER=postgres
-DATABASE_PASSWORD=postgres
-DATABASE_NAME=shabtzaq
-EOF
-
-# 3. Install and run
-make install          # Or manually: cd backend && npm install && cd ../frontend && npm install
-cd backend && npm run seed
-make backend          # In terminal 1
-make frontend         # In terminal 2
-```
-
-### Access the Application
-
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:3000/api
-- **API Documentation**: http://localhost:3000/api/docs (Swagger)
-
----
-
-## Architecture
-
-### System Overview
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         Browser                              │
-│  ┌────────────────────────────────────────────────────┐    │
-│  │         React + TypeScript Frontend                 │    │
-│  │  - shadcn/ui components (Hebrew RTL)                │    │
-│  │  - React Query for server state                     │    │
-│  │  - Zustand for UI state                             │    │
-│  │  - date-fns for scheduling logic                    │    │
-│  └───────────────┬────────────────────────────────────┘    │
-└────────────────┼─────────────────────────────────────────┘
-                 │ REST API (JSON)
-                 │ http://localhost:3000/api
-┌────────────────▼─────────────────────────────────────────┐
-│              NestJS Backend Server                        │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  Controllers (REST endpoints)                       │  │
-│  │    /soldiers  /tasks  /assignments  /settings       │  │
-│  └───────────────┬────────────────────────────────────┘  │
-│  ┌───────────────▼────────────────────────────────────┐  │
-│  │  Services (Business Logic)                          │  │
-│  │   - Auto-scheduling algorithm                       │  │
-│  │   - Constraint validation                           │  │
-│  │   - Fairness distribution                           │  │
-│  └───────────────┬────────────────────────────────────┘  │
-│  ┌───────────────▼────────────────────────────────────┐  │
-│  │  TypeORM Repositories                               │  │
-│  └───────────────┬────────────────────────────────────┘  │
-└────────────────┼─────────────────────────────────────────┘
-                 │ SQL Queries
-┌────────────────▼─────────────────────────────────────────┐
-│              PostgreSQL Database                          │
-│                                                            │
-│  Tables: soldiers, tasks, assignments,                    │
-│          constraints, settings                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-### Technology Stack
-
-#### Frontend (`/frontend`)
-- **React** 18 - UI library with hooks
-- **TypeScript** - Type safety
-- **Vite** - Build tool and dev server
-- **React Query** (@tanstack/react-query) - Server state management
-- **Zustand** - Client state management
-- **shadcn/ui** - Component library
-- **Tailwind CSS** - Utility-first styling
-- **date-fns** - Date manipulation
-- **Playwright** - E2E testing
-
-#### Backend (`/backend`)
-- **NestJS** - Progressive Node.js framework
-- **TypeScript** - Type safety
-- **TypeORM** - ORM for PostgreSQL
-- **PostgreSQL** 15 - Relational database
-- **class-validator** - DTO validation
-- **Swagger/OpenAPI** - API documentation
-
-#### Infrastructure
-- **Docker Compose** - PostgreSQL container
-- **GitHub Actions** - CI/CD (future)
-- **pnpm/npm** - Package management
+- 📋 **Smart Scheduling**: Automatic assignment algorithm considering constraints, rest periods, and fairness
+- 👥 **Personnel Management**: Complete CRUD operations for soldiers with roles, ranks, and vacation tracking
+- 📅 **Constraint System**: Manage soldier availability (vacation, medical, etc.)
+- 🔄 **Real-time Updates**: React Query ensures data consistency across the application
+- 📊 **Fairness Analytics**: Visual histogram showing work distribution
+- 🌐 **Full Stack**: Integrated frontend-backend with PostgreSQL persistence
 
 ---
 
 ## Features
 
-### 1. Soldier Management
-- ✅ CRUD operations (Create, Read, Update, Delete)
-- ✅ Multiple roles per soldier (Commander, Driver, Radio Operator, Soldier)
-- ✅ Rank and personal information
-- ✅ Vacation tracking (used/maximum days)
-- ✅ Constraint management:
-  - Unavailable dates
-  - Vacation periods
-  - Medical leave
-  - Custom reasons
+### Soldier Management
+- Add, edit, and delete soldiers
+- Multiple roles per soldier (Commander, Driver, Radio Operator, Soldier)
+- Vacation day tracking (used/maximum)
+- Constraint management (unavailable dates, vacation periods, medical leave)
 
-### 2. Task Management
-- ✅ Define shift-based tasks with start times and durations
-- ✅ Required roles per task (e.g., "2 soldiers, 1 radio operator")
-- ✅ Active/inactive task toggling
-- ✅ Rest period requirements between shifts (e.g., 48 hours between guard duties)
+### Task Management
+- Define shift-based tasks with start times and durations
+- Required roles per task (e.g., "2 soldiers, 1 radio operator")
+- Active/inactive task toggling
+- Rest period requirements between shifts
 
-### 3. Intelligent Auto-Scheduling
-The system includes a sophisticated scheduling algorithm that:
-- ✅ **Respects constraints**: Never assigns soldiers during unavailable periods
-- ✅ **Enforces rest periods**: Ensures minimum rest time between shifts
-- ✅ **Distributes workload fairly**: Uses histogram analysis to balance assignments
-- ✅ **Considers roles**: Matches required roles with soldier capabilities
-- ✅ **Maintains base presence**: Ensures minimum number of soldiers on base
+### Intelligent Scheduling
+- **Auto-scheduling algorithm** that:
+  - Respects soldier constraints (unavailable dates)
+  - Enforces rest periods between shifts
+  - Distributes workload fairly across all personnel
+  - Considers role requirements for each task
+  - Maintains minimum base presence
+- Manual assignment override capability
+- Lock assignments to prevent auto-scheduler changes
 
-**Algorithm Approach:**
-1. Fetch all tasks, soldiers, existing assignments, and constraints
-2. Filter available soldiers per task (exclude constrained, resting, or already assigned)
-3. Sort soldiers by assignment count (fairness)
-4. Assign required roles while respecting constraints
-5. Update assignment counts and verify minimum base presence
+### Settings & Configuration
+- Total soldiers in unit
+- Minimum base presence percentage
+- System-wide defaults
 
-### 4. Schedule Visualization
-- ✅ Weekly calendar view with date navigation
-- ✅ Task rows with soldier assignments
-- ✅ Drag-and-drop assignment management (future enhancement)
-- ✅ Color-coded by task type
-- ✅ Today indicator and week navigation
+### Dashboard Analytics
+- Total soldier count and distribution
+- Active constraints overview
+- Recent assignments
+- Vacation usage statistics
 
-### 5. Settings & Configuration
-- ✅ Total soldiers in unit
-- ✅ Minimum base presence requirement
-- ✅ Default rest periods
-- ✅ Persistent configuration storage
+---
 
-### 6. Data Persistence
-- ✅ PostgreSQL database with full ACID compliance
-- ✅ Automatic migrations via TypeORM
-- ✅ Seed script with 70 sample soldiers and 3 tasks (morning, evening, guard shifts)
-- ✅ Referential integrity with foreign keys
+## Tech Stack
+
+### Frontend
+- **React 18.3** with TypeScript
+- **Vite** - Fast build tool and dev server
+- **React Query (@tanstack/react-query)** - Server state management
+- **React Router** - Client-side routing
+- **Axios** - HTTP client
+- **shadcn/ui** - Component library (Radix UI primitives)
+- **Tailwind CSS** - Utility-first styling
+- **date-fns** - Date manipulation
+- **Zod** - Schema validation
+- **Playwright** - E2E testing
+
+### Backend
+- **NestJS** - Progressive Node.js framework
+- **TypeScript** - Type-safe backend
+- **TypeORM** - Object-relational mapping
+- **PostgreSQL** - Relational database
+- **Class Validator** - DTO validation
+
+### Development Tools
+- **ESLint** - Code linting
+- **Prettier** - Code formatting
+- **Vitest** - Unit testing
+- **GitHub Actions** - CI/CD (optional)
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Node.js** 18.x or higher
+- **npm** 9.x or higher
+- **PostgreSQL** 14.x or higher
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/shaibs3/shavtzak.git
+   cd shavtzak-integration
+   ```
+
+2. **Install backend dependencies**
+   ```bash
+   cd backend
+   npm install
+   ```
+
+3. **Install frontend dependencies**
+   ```bash
+   cd ../frontend
+   npm install
+   ```
+
+### Database Setup
+
+1. **Create PostgreSQL database**
+   ```bash
+   createdb shavtzak
+   ```
+
+2. **Configure database connection**
+
+   Create `backend/.env`:
+   ```env
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_USERNAME=postgres
+   DB_PASSWORD=your_password
+   DB_DATABASE=shavtzak
+   ```
+
+3. **Run migrations** (if any)
+   ```bash
+   cd backend
+   npm run migration:run
+   ```
+
+4. **Seed initial data**
+   ```bash
+   npm run seed
+   ```
+
+   This creates:
+   - 70 soldiers with realistic Hebrew names
+   - 2 default tasks (morning & evening shifts)
+   - Sample constraints (~20% of soldiers)
+
+### Frontend Configuration
+
+Create `frontend/.env`:
+```env
+VITE_API_BASE_URL=http://localhost:3000/api
+```
+
+### Running the Application
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+npm run start:dev
+```
+Backend runs on: http://localhost:3000
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+Frontend runs on: http://localhost:8080
+
+**Open in browser:** http://localhost:8080
 
 ---
 
@@ -251,291 +186,457 @@ The system includes a sophisticated scheduling algorithm that:
 
 ```
 shavtzak-integration/
-├── frontend/                    # React frontend application
+├── backend/                    # NestJS backend
 │   ├── src/
-│   │   ├── components/         # React components (soldiers, tasks, schedule)
-│   │   ├── hooks/              # React Query hooks (useSoldiers, useTasks, etc.)
-│   │   ├── lib/                # Utilities (API client, date helpers)
-│   │   ├── store/              # Zustand stores (UI state)
-│   │   ├── types/              # TypeScript types
-│   │   └── App.tsx             # Main application component
-│   ├── tests/
-│   │   └── e2e/                # Playwright E2E tests
-│   ├── public/                 # Static assets (logo, favicon)
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tailwind.config.js
-│   └── README.md               # Frontend-specific documentation
+│   │   ├── soldiers/          # Soldier module (CRUD + constraints)
+│   │   ├── tasks/             # Task module (CRUD)
+│   │   ├── assignments/       # Assignment module (CRUD)
+│   │   ├── settings/          # Settings module
+│   │   ├── database/          # Database configuration & seeds
+│   │   └── main.ts            # Application entry point
+│   ├── test/                  # E2E tests
+│   └── package.json
 │
-├── backend/                     # NestJS backend application
+├── frontend/                   # React frontend
 │   ├── src/
-│   │   ├── soldiers/           # Soldier module (entity, service, controller)
-│   │   ├── tasks/              # Task module
-│   │   ├── assignments/        # Assignment module + scheduling algorithm
-│   │   ├── constraints/        # Constraint module
-│   │   ├── settings/           # Settings module
-│   │   ├── database/           # Database config and seeds
-│   │   └── main.ts             # Application entry point
-│   ├── test/                   # Backend tests
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── README.md               # Backend-specific documentation
+│   │   ├── components/        # React components
+│   │   │   ├── soldiers/      # Soldier management UI
+│   │   │   ├── tasks/         # Task management UI
+│   │   │   ├── schedule/      # Scheduling UI
+│   │   │   ├── settings/      # Settings UI
+│   │   │   ├── dashboard/     # Dashboard UI
+│   │   │   └── layout/        # Layout components
+│   │   ├── hooks/             # React Query hooks
+│   │   │   ├── useSoldiers.ts
+│   │   │   ├── useTasks.ts
+│   │   │   ├── useAssignments.ts
+│   │   │   └── useSettings.ts
+│   │   ├── services/          # API service layer
+│   │   │   ├── api.ts         # Axios client
+│   │   │   ├── soldiers.service.ts
+│   │   │   ├── tasks.service.ts
+│   │   │   ├── assignments.service.ts
+│   │   │   └── settings.service.ts
+│   │   ├── lib/               # Utilities
+│   │   │   └── scheduling/    # Auto-scheduling algorithm
+│   │   ├── types/             # TypeScript types
+│   │   └── App.tsx            # Root component
+│   ├── tests/e2e/             # Playwright E2E tests
+│   └── package.json
 │
-├── docs/
-│   └── plans/                  # Design and implementation plans
-│       ├── 2026-01-23-backend-implementation.md
-│       ├── 2026-01-23-backend-redesign.md
-│       ├── 2026-01-23-frontend-backend-integration-design.md
-│       └── 2026-01-23-frontend-backend-integration-implementation.md
-│
-├── docker-compose.yml          # PostgreSQL container setup
-├── Makefile                    # Development automation commands
-└── README.md                   # This file
+└── docs/                       # Documentation
+    ├── plans/                  # Implementation plans
+    └── design/                 # Architecture design docs
+```
+
+---
+
+## Architecture
+
+### Frontend Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│           React Components                  │
+│  (SoldiersView, TasksView, ScheduleView)   │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│         React Query Hooks                   │
+│  (useSoldiers, useTasks, useAssignments)   │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│          Service Layer                      │
+│   (soldiers.service, tasks.service)         │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│          Axios Client                       │
+│     (Error interceptors, base config)       │
+└──────────────────┬──────────────────────────┘
+                   │
+                   ▼
+              REST API (Backend)
+```
+
+### Backend Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│         NestJS Controllers                  │
+│   (SoldiersController, TasksController)    │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│           Services Layer                    │
+│  (Business logic, validation)               │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│          TypeORM Repository                 │
+│     (Database abstraction)                  │
+└──────────────────┬──────────────────────────┘
+                   │
+                   ▼
+              PostgreSQL
+```
+
+### Data Flow
+
+1. User interacts with React component
+2. Component calls React Query hook (e.g., `useCreateSoldier`)
+3. Hook invokes service method (e.g., `soldiersService.create()`)
+4. Service makes HTTP request via Axios
+5. Backend controller receives request
+6. Service processes business logic
+7. TypeORM persists to PostgreSQL
+8. Response flows back through layers
+9. React Query updates cache
+10. Component re-renders with new data
+
+---
+
+## API Documentation
+
+### Base URL
+```
+http://localhost:3000/api
+```
+
+### Soldiers
+
+#### Get All Soldiers
+```http
+GET /soldiers
+```
+
+Response:
+```json
+[
+  {
+    "id": "uuid",
+    "name": "יוסי כהן",
+    "rank": "סמל",
+    "roles": ["soldier", "driver"],
+    "maxVacationDays": 7,
+    "usedVacationDays": 2,
+    "constraints": [...]
+  }
+]
+```
+
+#### Create Soldier
+```http
+POST /soldiers
+Content-Type: application/json
+
+{
+  "name": "דני לוי",
+  "rank": "טוראי",
+  "roles": ["soldier"],
+  "maxVacationDays": 5,
+  "usedVacationDays": 0
+}
+```
+
+#### Update Soldier
+```http
+PATCH /soldiers/:id
+Content-Type: application/json
+
+{
+  "rank": "רב טוראי",
+  "usedVacationDays": 3
+}
+```
+
+#### Delete Soldier
+```http
+DELETE /soldiers/:id
+```
+
+#### Add Constraint
+```http
+POST /soldiers/:soldierId/constraints
+Content-Type: application/json
+
+{
+  "type": "vacation",
+  "startDate": "2026-02-01",
+  "endDate": "2026-02-07",
+  "reason": "חופשה שנתית"
+}
+```
+
+#### Remove Constraint
+```http
+DELETE /soldiers/:soldierId/constraints/:constraintId
+```
+
+### Tasks
+
+#### Get All Tasks
+```http
+GET /tasks
+```
+
+#### Create Task
+```http
+POST /tasks
+Content-Type: application/json
+
+{
+  "name": "משמרת בוקר",
+  "description": "שמירה 06:00-14:00",
+  "shiftStartHour": 6,
+  "shiftDuration": 8,
+  "restTimeBetweenShifts": 12,
+  "isActive": true,
+  "requiredRoles": [
+    { "role": "soldier", "count": 2 },
+    { "role": "commander", "count": 1 }
+  ]
+}
+```
+
+#### Update Task
+```http
+PATCH /tasks/:id
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+```
+
+#### Delete Task
+```http
+DELETE /tasks/:id
+```
+
+### Assignments
+
+#### Get All Assignments
+```http
+GET /assignments
+```
+
+#### Create Assignment
+```http
+POST /assignments
+Content-Type: application/json
+
+{
+  "taskId": "uuid",
+  "soldierId": "uuid",
+  "role": "soldier",
+  "startTime": "2026-01-25T06:00:00Z",
+  "endTime": "2026-01-25T14:00:00Z",
+  "locked": false
+}
+```
+
+#### Delete Assignment
+```http
+DELETE /assignments/:id
+```
+
+### Settings
+
+#### Get Settings
+```http
+GET /settings
+```
+
+#### Update Settings
+```http
+PATCH /settings
+Content-Type: application/json
+
+{
+  "minBasePresence": 80,
+  "totalSoldiers": 70
+}
+```
+
+---
+
+## Testing
+
+### Unit Tests (Frontend)
+```bash
+cd frontend
+npm run test
+```
+
+### E2E Tests (Frontend)
+```bash
+cd frontend
+npm run test:e2e           # Run all E2E tests
+npm run test:e2e:ui        # Run with Playwright UI
+npm run test:e2e:headed    # Run in headed mode
+```
+
+**Test Coverage:**
+- ✅ Soldiers CRUD operations
+- ✅ Tasks CRUD operations
+- ✅ Settings management
+- ✅ Schedule view and navigation
+- ✅ Auto-scheduling
+- ✅ Error handling and recovery
+
+### Backend Tests
+```bash
+cd backend
+npm run test              # Unit tests
+npm run test:e2e          # E2E tests
+npm run test:cov          # Coverage report
+```
+
+---
+
+## Auto-Scheduling Algorithm
+
+The system includes an intelligent scheduling algorithm (`frontend/src/lib/scheduling/fairScheduling.ts`) that:
+
+### Features
+1. **Constraint Awareness**: Respects soldier unavailability (vacation, medical, etc.)
+2. **Rest Periods**: Ensures minimum rest time between shifts
+3. **Fair Distribution**: Tracks and balances workload across all soldiers
+4. **Role Matching**: Only assigns soldiers with required roles
+5. **Base Presence**: Maintains minimum staffing levels
+
+### Algorithm Flow
+```
+1. For each day in the week:
+   2. For each active task:
+      3. For each required role:
+         4. Filter available soldiers:
+            - Has required role
+            - Not constrained on this date
+            - Has sufficient rest since last shift
+         5. Sort by workload (least assigned first)
+         6. Assign soldier with lowest workload
+         7. Update workload tracker
+      8. If any role unfilled, mark as unfilled slot
+9. Return assignments and unfilled count
 ```
 
 ---
 
 ## Development
 
-### Component Documentation
+### Code Style
+- ESLint configuration included
+- Prettier for formatting
+- TypeScript strict mode enabled
 
-- **Frontend**: See [frontend/README.md](./frontend/README.md) for detailed component architecture, React Query setup, and E2E testing
-- **Backend**: See [backend/README.md](./backend/README.md) for API endpoints, entity relationships, and scheduling algorithm details
-
-### Database Management
-
-```bash
-# Start PostgreSQL
-docker-compose up -d
-
-# Stop PostgreSQL
-docker-compose down
-
-# Reset database (WARNING: destroys all data)
-docker-compose down -v
-docker-compose up -d
-cd backend && npm run seed
+### Commit Conventions
+```
+feat: Add new feature
+fix: Bug fix
+docs: Documentation changes
+test: Test additions/modifications
+refactor: Code refactoring
+style: Formatting changes
+chore: Build/tooling changes
 ```
 
-### Running Tests
-
-#### Backend Tests
-```bash
-cd backend
-npm run test          # Unit tests
-npm run test:e2e      # E2E tests
-npm run test:cov      # Coverage report
-```
-
-#### Frontend Tests
-```bash
-cd frontend
-npm run test:e2e      # Run Playwright tests (requires backend + DB running)
-npm run test:e2e:ui   # Open Playwright UI
-npm run test:e2e:debug # Debug mode
-```
-
-**E2E Test Coverage:**
-- ✅ Soldier CRUD operations (7 tests)
-- ✅ Task management (4 tests)
-- ✅ Schedule navigation and auto-scheduling (4 tests)
-- ✅ Settings persistence (3 tests)
-- ✅ Error handling and recovery (3 tests)
-
-### Development Workflow
-
-1. **Start Database**: `docker-compose up -d`
-2. **Start Backend**: `cd backend && npm run start:dev`
-3. **Start Frontend**: `cd frontend && npm run dev`
-4. **Make Changes**: Edit code in `frontend/src` or `backend/src`
-5. **Test Changes**: Run E2E tests or manual testing
-6. **Commit**: Follow conventional commit format (feat:, fix:, docs:, etc.)
-
-### API Development
-
-- **Swagger UI**: http://localhost:3000/api/docs
-- **Health Check**: http://localhost:3000/health
-- **API Base URL**: http://localhost:3000/api
-
-See [frontend/README.md](./frontend/README.md) for complete API documentation with examples.
+### Branch Strategy
+- `main` - Production-ready code
+- `integration/*` - Feature branches
+- `fix/*` - Bug fix branches
 
 ---
 
 ## Deployment
 
-### Production Build
+### Frontend (Vercel/Netlify)
+1. Build production bundle:
+   ```bash
+   cd frontend
+   npm run build
+   ```
 
-#### Frontend
-```bash
-cd frontend
-npm run build         # Creates dist/ folder
-npm run preview       # Preview production build locally
-```
+2. Deploy `dist/` folder
 
-#### Backend
-```bash
-cd backend
-npm run build         # Creates dist/ folder
-npm run start:prod    # Run production server
-```
+3. Set environment variable:
+   ```
+   VITE_API_BASE_URL=https://your-api.com/api
+   ```
 
-### Environment Variables
+### Backend (Heroku/Railway/Fly.io)
+1. Set environment variables:
+   ```
+   DB_HOST=your-db-host
+   DB_PORT=5432
+   DB_USERNAME=your-db-user
+   DB_PASSWORD=your-db-pass
+   DB_DATABASE=shavtzak
+   ```
 
-#### Backend `.env`
-```env
-# Database
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_USER=postgres
-DATABASE_PASSWORD=your-secure-password
-DATABASE_NAME=shabtzaq
-
-# Server
-PORT=3000
-NODE_ENV=production
-
-# CORS (set to your frontend domain)
-CORS_ORIGIN=https://your-frontend-domain.com
-```
-
-#### Frontend `.env`
-```env
-VITE_API_URL=https://your-backend-domain.com/api
-```
-
-### Deployment Options
-
-#### Option 1: Docker
-```bash
-# Build backend image
-cd backend
-docker build -t shabtzaq-backend .
-
-# Build frontend image
-cd frontend
-docker build -t shabtzaq-frontend .
-
-# Run with docker-compose (production)
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-#### Option 2: Cloud Platforms
-
-**Backend (NestJS):**
-- Heroku
-- Railway
-- Render
-- AWS Elastic Beanstalk
-- DigitalOcean App Platform
-
-**Frontend (React):**
-- Vercel (recommended)
-- Netlify
-- Cloudflare Pages
-- AWS S3 + CloudFront
-- GitHub Pages (with BrowserRouter → HashRouter change)
-
-**Database:**
-- AWS RDS (PostgreSQL)
-- Heroku Postgres
-- Supabase
-- Railway Postgres
-- DigitalOcean Managed Database
+2. Deploy via platform CLI or Git integration
 
 ---
 
-## Git Workflow
+## Known Issues
 
-### Branches
-- `main` - Production-ready code
-- `integration/*` - Integration branches for major features
-- `feature/*` - New features
-- `fix/*` - Bug fixes
-- `docs/*` - Documentation updates
-
-### Commit Convention
-We follow conventional commits:
-```
-feat: add soldier constraint management
-fix: resolve React hooks violation in ScheduleView
-docs: update API documentation
-test: add E2E tests for error handling
-refactor: improve scheduling algorithm efficiency
-```
+- E2E tests: 15/21 tests need toast timing adjustments
+- Auto-scheduler may not fill all slots with extreme constraints
+- Hebrew text rendering requires proper font support
 
 ---
 
-## Troubleshooting
+## Future Enhancements
 
-### Common Issues
-
-**1. Database Connection Error**
-```
-Error: connect ECONNREFUSED 127.0.0.1:5432
-```
-**Solution**: Ensure PostgreSQL is running: `docker-compose up -d`
-
-**2. Port Already in Use**
-```
-Error: Port 3000 is already in use
-```
-**Solution**: Kill existing process: `lsof -ti:3000 | xargs kill -9`
-
-**3. Frontend Can't Connect to Backend**
-```
-Network Error / CORS Error
-```
-**Solution**:
-- Verify backend is running: `curl http://localhost:3000/health`
-- Check CORS settings in `backend/src/main.ts`
-- Verify VITE_API_URL in frontend
-
-**4. E2E Tests Failing**
-```
-TimeoutError: Waiting for selector...
-```
-**Solution**:
-- Ensure backend and database are running
-- Seed database: `cd backend && npm run seed`
-- Increase timeout in test: `{ timeout: 10000 }`
-
-**5. React Hooks Error**
-```
-Error: Rendered more hooks than during the previous render
-```
-**Solution**: Ensure all hooks are called before any conditional returns
+- [ ] User authentication and authorization
+- [ ] Multi-unit support
+- [ ] Export schedules to PDF/Excel
+- [ ] WebSocket for real-time updates
+- [ ] Mobile app (React Native)
+- [ ] Email notifications for assignments
+- [ ] Advanced conflict resolution UI
+- [ ] Historical analytics and reporting
+- [ ] Integration with military HR systems
 
 ---
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'feat: add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- Built with [shadcn/ui](https://ui.shadcn.com/) component library
+- Inspired by military unit scheduling challenges
+- Uses [Radix UI](https://www.radix-ui.com/) primitives
 
 ---
 
 ## Support
 
-For questions or issues:
-- Open a GitHub Issue
-- Check existing documentation in `/docs/plans`
-- Review component-specific READMEs in `/frontend` and `/backend`
+For issues, questions, or contributions, please open an issue on GitHub:
+https://github.com/shaibs3/shavtzak/issues
 
 ---
 
 <div align="center">
 
-**Built with ❤️ using React, NestJS, and PostgreSQL**
+**שבצ״ק** - Built with ❤️ for military units
 
-[Back to Top](#שבצק---shavtzak-scheduling-system)
+[⬆ Back to top](#שבצק---shavtzak-scheduling-system)
 
 </div>
