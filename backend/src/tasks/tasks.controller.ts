@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('tasks')
 @Controller('tasks')
@@ -20,6 +21,7 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
+  @Roles('admin')
   @ApiOperation({ summary: 'Create a new task' })
   @ApiResponse({ status: 201, description: 'Task created successfully' })
   create(@Body() createTaskDto: CreateTaskDto) {
@@ -42,6 +44,7 @@ export class TasksController {
   }
 
   @Patch(':id')
+  @Roles('admin')
   @ApiOperation({ summary: 'Update task' })
   @ApiResponse({ status: 200, description: 'Task updated successfully' })
   @ApiResponse({ status: 404, description: 'Task not found' })
@@ -50,6 +53,7 @@ export class TasksController {
   }
 
   @Delete(':id')
+  @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete task' })
   @ApiResponse({ status: 204, description: 'Task deleted successfully' })

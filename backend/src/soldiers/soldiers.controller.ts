@@ -14,6 +14,8 @@ import { SoldiersService } from './soldiers.service';
 import { CreateSoldierDto } from './dto/create-soldier.dto';
 import { UpdateSoldierDto } from './dto/update-soldier.dto';
 import { CreateConstraintDto } from './dto/create-constraint.dto';
+import { BulkUpdateSoldiersDto } from './dto/bulk-update-soldiers.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('soldiers')
 @Controller('soldiers')
@@ -21,6 +23,7 @@ export class SoldiersController {
   constructor(private readonly soldiersService: SoldiersService) {}
 
   @Post()
+  @Roles('admin')
   @ApiOperation({ summary: 'Create a new soldier' })
   @ApiResponse({ status: 201, description: 'Soldier created successfully' })
   create(@Body() createSoldierDto: CreateSoldierDto) {
@@ -43,6 +46,7 @@ export class SoldiersController {
   }
 
   @Patch(':id')
+  @Roles('admin')
   @ApiOperation({ summary: 'Update soldier' })
   @ApiResponse({ status: 200, description: 'Soldier updated successfully' })
   @ApiResponse({ status: 404, description: 'Soldier not found' })
@@ -51,6 +55,7 @@ export class SoldiersController {
   }
 
   @Delete(':id')
+  @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete soldier' })
   @ApiResponse({ status: 204, description: 'Soldier deleted successfully' })
@@ -60,6 +65,7 @@ export class SoldiersController {
   }
 
   @Post(':id/constraints')
+  @Roles('admin')
   @ApiOperation({ summary: 'Add constraint to soldier' })
   @ApiResponse({ status: 201, description: 'Constraint added successfully' })
   @ApiResponse({ status: 404, description: 'Soldier not found' })
@@ -71,6 +77,7 @@ export class SoldiersController {
   }
 
   @Delete(':id/constraints/:constraintId')
+  @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove constraint from soldier' })
   @ApiResponse({ status: 204, description: 'Constraint removed successfully' })
@@ -80,5 +87,16 @@ export class SoldiersController {
     @Param('constraintId') constraintId: string,
   ) {
     return this.soldiersService.removeConstraint(id, constraintId);
+  }
+
+  @Patch('bulk-update')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Bulk update soldiers platoon assignment' })
+  @ApiResponse({ status: 200, description: 'Soldiers updated successfully' })
+  bulkUpdate(@Body() bulkUpdateDto: BulkUpdateSoldiersDto) {
+    return this.soldiersService.bulkUpdate(
+      bulkUpdateDto.soldierIds,
+      bulkUpdateDto.platoonId ?? null,
+    );
   }
 }

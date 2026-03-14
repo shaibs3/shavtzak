@@ -6,23 +6,36 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS
-  app.enableCors();
+  // Enable CORS - restrict to frontend URL in production
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+  app.enableCors({
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? frontendUrl
+        : [frontendUrl, 'http://localhost:8080', 'http://localhost:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
 
   // Global API prefix
   app.setGlobalPrefix('api');
 
   // Global validation pipe
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   // Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('Shavtzak Duty Scheduler API')
-    .setDescription('REST API for managing duty scheduling, soldiers, tasks, and assignments')
+    .setDescription(
+      'REST API for managing duty scheduling, soldiers, tasks, and assignments',
+    )
     .setVersion('1.0')
     .build();
   const document = SwaggerModule.createDocument(app, config);

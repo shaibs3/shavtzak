@@ -1,18 +1,30 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, Calendar, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAssignments, useCreateAssignment, useDeleteAssignment } from '@/hooks/useAssignments';
 import { useSoldiers } from '@/hooks/useSoldiers';
 import { useTasks } from '@/hooks/useTasks';
 import { useSettings } from '@/hooks/useSettings';
-import { roleLabels } from '@/types/scheduling';
-import { format, addDays, startOfWeek } from 'date-fns';
+import { usePlatoons } from '@/hooks/usePlatoons';
+import { getRoleLabel } from '@/types/scheduling';
+import { format, addDays, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { buildFairWeekSchedule } from '@/lib/scheduling/fairScheduling';
 import { AssignDialog } from '@/components/schedule/AssignDialog';
-import { FairnessHistogram } from '@/components/schedule/FairnessHistogram';
+import { PlatoonStatsCards } from '@/components/schedule/PlatoonStatsCards';
+import { PlatoonFairnessChart } from '@/components/schedule/PlatoonFairnessChart';
+import { PlatoonTaskDistribution } from '@/components/schedule/PlatoonTaskDistribution';
+import { useAuth } from '@/hooks/useAuth';
 
 function asDate(value: unknown): Date {
   if (value instanceof Date) return value;
@@ -21,16 +33,22 @@ function asDate(value: unknown): Date {
 }
 
 export function ScheduleView() {
+  const { isAdmin } = useAuth();
   const { data: assignments, isLoading: assignmentsLoading } = useAssignments();
   const { data: soldiers, isLoading: soldiersLoading } = useSoldiers();
   const { data: tasks, isLoading: tasksLoading } = useTasks();
   const { data: settings, isLoading: settingsLoading } = useSettings();
+  const { data: platoons = [] } = usePlatoons();
   const createAssignment = useCreateAssignment();
   const deleteAssignment = useDeleteAssignment();
+  const navigate = useNavigate();
 
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 0 })
   );
+
+  const [selectedPlatoonFilter, setSelectedPlatoonFilter] = useState<string[]>([]);
+  const [isScheduling, setIsScheduling] = useState(false);
 
   const [manualDialog, setManualDialog] = useState<{
     open: boolean;
@@ -61,20 +79,96 @@ export function ScheduleView() {
     return assignmentsList.filter((a) => dayKeys.has(format(asDate(a.startTime), 'yyyy-MM-dd')));
   }, [assignmentsList, dayKeys]);
 
+  const soldierById = useMemo(() => new Map(soldiersList.map((s) => [s.id, s])), [soldiersList]);
+  const taskById = useMemo(() => new Map(tasksList.map((t) => [t.id, t])), [tasksList]);
+  const platoonById = useMemo(
+    () => new Map(platoons.map((p) => [p.id, p])),
+    [platoons]
+  );
+
+  const displayedAssignments = useMemo(() => {
+    if (selectedPlatoonFilter.length === 0) return weekAssignments;
+
+    return weekAssignments.filter((a) => {
+      const soldier = soldierById.get(a.soldierId);
+      if (!soldier) return false;
+
+      // Check if soldier's platoon is in filter, or if "none" is selected and soldier has no platoon
+      if (selectedPlatoonFilter.includes('none') && !soldier.platoonId) return true;
+      if (soldier.platoonId && selectedPlatoonFilter.includes(soldier.platoonId)) return true;
+
+      return false;
+    });
+  }, [weekAssignments, selectedPlatoonFilter, soldierById]);
+
   const assignmentsByTaskDay = useMemo(() => {
-    const map = new Map<string, typeof weekAssignments>();
-    for (const a of weekAssignments) {
+    const map = new Map<string, typeof displayedAssignments>();
+    for (const a of displayedAssignments) {
       const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
       const key = `${a.taskId}__${dayKey}`;
       map.set(key, [...(map.get(key) ?? []), a]);
     }
     return map;
-  }, [weekAssignments]);
-
-  const soldierById = useMemo(() => new Map(soldiersList.map((s) => [s.id, s])), [soldiersList]);
-  const taskById = useMemo(() => new Map(tasksList.map((t) => [t.id, t])), [tasksList]);
+  }, [displayedAssignments]);
 
   const isLoading = assignmentsLoading || soldiersLoading || tasksLoading || settingsLoading;
+
+  // Check if current week is within operational period
+  const isWeekInOperationalPeriod = useMemo(() => {
+    if (!settings?.operationalStartDate || !settings?.operationalEndDate) {
+      return false;
+    }
+
+    const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
+    const opStart = new Date(settings.operationalStartDate);
+    const opEnd = new Date(settings.operationalEndDate);
+
+    return currentWeekStart <= opEnd && weekEnd >= opStart;
+  }, [currentWeekStart, settings]);
+
+  // Check if can navigate to previous week
+  const canNavigatePrevious = useMemo(() => {
+    if (!settings?.operationalStartDate) return false;
+    const previousWeek = subWeeks(currentWeekStart, 1);
+    const opStart = new Date(settings.operationalStartDate);
+    return endOfWeek(previousWeek, { weekStartsOn: 0 }) >= opStart;
+  }, [currentWeekStart, settings]);
+
+  // Check if can navigate to next week
+  const canNavigateNext = useMemo(() => {
+    if (!settings?.operationalEndDate) return false;
+    const nextWeek = addWeeks(currentWeekStart, 1);
+    const opEnd = new Date(settings.operationalEndDate);
+    return startOfWeek(nextWeek, { weekStartsOn: 0 }) <= opEnd;
+  }, [currentWeekStart, settings]);
+
+  // Ensure current week is within operational period when settings load
+  useEffect(() => {
+    if (!settings?.operationalStartDate || !settings?.operationalEndDate) {
+      return;
+    }
+
+    const opStart = new Date(settings.operationalStartDate);
+    const opEnd = new Date(settings.operationalEndDate);
+    const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 0 });
+
+    // If current week is before operational period, jump to first week
+    if (weekEnd < opStart) {
+      setCurrentWeekStart(startOfWeek(opStart, { weekStartsOn: 0 }));
+      return;
+    }
+
+    // If current week is after operational period, jump to last week
+    if (currentWeekStart > opEnd) {
+      setCurrentWeekStart(startOfWeek(opEnd, { weekStartsOn: 0 }));
+      return;
+    }
+
+    // If current week overlaps but starts before, jump to first week
+    if (currentWeekStart < opStart) {
+      setCurrentWeekStart(startOfWeek(opStart, { weekStartsOn: 0 }));
+    }
+  }, [settings?.operationalStartDate, settings?.operationalEndDate]);
 
   // Navigation functions
   const goToPreviousWeek = () => {
@@ -86,55 +180,128 @@ export function ScheduleView() {
   };
 
   const goToToday = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
+    const today = new Date();
+    const todayWeekStart = startOfWeek(today, { weekStartsOn: 0 });
+
+    // If no operational period set, just go to today
+    if (!settings?.operationalStartDate || !settings?.operationalEndDate) {
+      setCurrentWeekStart(todayWeekStart);
+      return;
+    }
+
+    const opStart = new Date(settings.operationalStartDate);
+    const opEnd = new Date(settings.operationalEndDate);
+
+    // If today is before operational period, go to first week
+    if (today < opStart) {
+      setCurrentWeekStart(startOfWeek(opStart, { weekStartsOn: 0 }));
+      return;
+    }
+
+    // If today is after operational period, go to last week
+    if (today > opEnd) {
+      setCurrentWeekStart(startOfWeek(opEnd, { weekStartsOn: 0 }));
+      return;
+    }
+
+    // Today is within operational period
+    setCurrentWeekStart(todayWeekStart);
   };
 
   if (isLoading) {
     return <div className="p-8 text-center">טוען...</div>;
   }
 
+  // Show prompt if operational period is not set
+  if (!settings?.operationalStartDate || !settings?.operationalEndDate) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">לא הוגדרה תקופת תעסוקה מבצעית</h3>
+          <p className="text-muted-foreground mb-4">
+            יש להגדיר תקופת תעסוקה בהגדרות לפני תחילת השיבוץ
+          </p>
+          <Button onClick={() => navigate('/settings')}>
+            עבור להגדרות
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const runAutoScheduling = async () => {
-    const { assignments: next, unfilledSlots } = buildFairWeekSchedule({
-      weekStart: currentWeekStart,
-      soldiers: soldiersList,
-      tasks: tasksList,
-      existingAssignments: assignmentsList,
-    });
-
-    // Delete old assignments for the week and create new ones
-    const weekStart = format(currentWeekStart, 'yyyy-MM-dd');
-    const weekEnd = format(addDays(currentWeekStart, 7), 'yyyy-MM-dd');
-
-    // Find assignments to delete (those in the current week)
-    const toDelete = assignmentsList.filter((a) => {
-      const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
-      return dayKey >= weekStart && dayKey < weekEnd;
-    });
-
-    // Delete old assignments
-    for (const assignment of toDelete) {
-      deleteAssignment.mutate(assignment.id);
-    }
-
-    // Create new assignments
-    for (const assignment of next) {
-      createAssignment.mutate({
-        taskId: assignment.taskId,
-        soldierId: assignment.soldierId,
-        role: assignment.role,
-        startTime: assignment.startTime,
-        endTime: assignment.endTime,
-        locked: assignment.locked,
+    if (isScheduling) {
+      toast({
+        title: 'שיבוץ כבר רץ',
+        description: 'אנא המתן לסיום השיבוץ הנוכחי',
+        variant: 'destructive',
       });
+      return;
     }
 
-    toast({
-      title: 'שיבוץ אוטומטי הושלם',
-      description:
-        unfilledSlots > 0
-          ? `לא הצלחתי לאייש ${unfilledSlots} תפקידים השבוע (בדוק אילוצים/כוח אדם).`
-          : 'כל התפקידים אוישו בהתאם לכללי ההוגנות.',
-    });
+    setIsScheduling(true);
+
+    try {
+      const { assignments: next, unfilledSlots } = buildFairWeekSchedule({
+        weekStart: currentWeekStart,
+        soldiers: soldiersList,
+        tasks: tasksList,
+        platoons: platoons,
+        existingAssignments: assignmentsList,
+      });
+
+      // Delete old assignments for the week and create new ones
+      const weekStart = format(currentWeekStart, 'yyyy-MM-dd');
+      const weekEnd = format(addDays(currentWeekStart, 7), 'yyyy-MM-dd');
+
+      // Find assignments to delete (those in the current week)
+      const toDelete = assignmentsList.filter((a) => {
+        const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
+        return dayKey >= weekStart && dayKey < weekEnd;
+      });
+
+      // Delete old assignments (non-locked ones only) - sequentially to avoid conflicts
+      for (const assignment of toDelete) {
+        if (!assignment.locked) {
+          await deleteAssignment.mutateAsync(assignment.id);
+        }
+      }
+
+      // Create new assignments (only for current week, non-locked) - sequentially
+      const toCreate = next.filter((a) => {
+        const dayKey = format(asDate(a.startTime), 'yyyy-MM-dd');
+        const isInCurrentWeek = dayKey >= weekStart && dayKey < weekEnd;
+        return isInCurrentWeek && !a.locked;
+      });
+
+      for (const assignment of toCreate) {
+        await createAssignment.mutateAsync({
+          taskId: assignment.taskId,
+          soldierId: assignment.soldierId,
+          role: assignment.role,
+          startTime: assignment.startTime,
+          endTime: assignment.endTime,
+          locked: assignment.locked,
+        });
+      }
+
+      toast({
+        title: 'שיבוץ אוטומטי הושלם',
+        description:
+          unfilledSlots > 0
+            ? `לא הצלחתי לאייש ${unfilledSlots} תפקידים השבוע (בדוק אילוצים/כוח אדם).`
+            : 'כל התפקידים אוישו בהתאם לכללי ההוגנות.',
+      });
+    } catch (error) {
+      toast({
+        title: 'שגיאה בשיבוץ',
+        description: 'אירעה שגיאה בעת ביצוע השיבוץ האוטומטי',
+        variant: 'destructive',
+      });
+      console.error('Auto-scheduling error:', error);
+    } finally {
+      setIsScheduling(false);
+    }
   };
 
   return (
@@ -145,17 +312,54 @@ export function ScheduleView() {
           <p className="text-muted-foreground mt-1">תצוגת שבוע ושיבוץ משימות</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="default" size="sm" onClick={runAutoScheduling} className="gap-2">
-            <Sparkles className="w-4 h-4" />
-            שיבוץ אוטומטי
-          </Button>
+          <Select
+            value={selectedPlatoonFilter[0] || 'all'}
+            onValueChange={(v) => {
+              if (v === 'all') {
+                setSelectedPlatoonFilter([]);
+              } else {
+                setSelectedPlatoonFilter([v]);
+              }
+            }}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="סנן לפי מחלקה" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">כל המחלקות</SelectItem>
+              {platoons.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: p.color }}
+                    />
+                    <span>{p.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+              <SelectItem value="none">ללא מחלקה</SelectItem>
+            </SelectContent>
+          </Select>
+          {isAdmin && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={runAutoScheduling}
+              disabled={isScheduling}
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              {isScheduling ? 'משבץ...' : 'שיבוץ אוטומטי'}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={goToToday}>
             היום
           </Button>
-          <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
+          <Button variant="outline" size="icon" onClick={goToPreviousWeek} disabled={!canNavigatePrevious}>
             <ChevronRight className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={goToNextWeek}>
+          <Button variant="outline" size="icon" onClick={goToNextWeek} disabled={!canNavigateNext}>
             <ChevronLeft className="w-4 h-4" />
           </Button>
         </div>
@@ -190,7 +394,7 @@ export function ScheduleView() {
               <div className="flex flex-wrap gap-1 mt-1">
                 {task.requiredRoles.map((role, idx) => (
                   <Badge key={idx} variant="secondary" className="text-xs">
-                    {role.count} {roleLabels[role.role]}
+                    {role.count} {getRoleLabel(role.role)}
                   </Badge>
                 ))}
               </div>
@@ -198,9 +402,11 @@ export function ScheduleView() {
             {weekDays.map((day, idx) => (
               <div
                 key={idx}
-                className="p-2 border-r border-border min-h-[100px] hover:bg-muted/20 transition-colors cursor-pointer group"
+                className={`p-2 border-r border-border min-h-[100px] overflow-hidden transition-colors ${isAdmin ? 'hover:bg-muted/20 cursor-pointer group' : ''}`}
                 onClick={() => {
-                  setManualDialog({ open: true, taskId: task.id, dayKey: format(day, 'yyyy-MM-dd') });
+                  if (isAdmin) {
+                    setManualDialog({ open: true, taskId: task.id, dayKey: format(day, 'yyyy-MM-dd') });
+                  }
                 }}
               >
                 {(() => {
@@ -213,17 +419,19 @@ export function ScheduleView() {
                   if (slotAssignments.length === 0) {
                     return (
                       <div className="h-full flex items-center justify-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setManualDialog({ open: true, taskId: task.id, dayKey });
-                          }}
-                        >
-                          + שבץ
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setManualDialog({ open: true, taskId: task.id, dayKey });
+                            }}
+                          >
+                            + שבץ
+                          </Button>
+                        )}
                       </div>
                     );
                   }
@@ -233,11 +441,27 @@ export function ScheduleView() {
                       {slotAssignments.map((a) => (
                         <div
                           key={a.id}
-                          className="flex items-center justify-between rounded-md border border-border bg-background/50 px-2 py-1 text-xs"
+                          className="flex items-center justify-between gap-1 rounded-md border border-border bg-background/50 px-2 py-1 text-xs overflow-hidden"
                         >
-                          <span className="truncate">
-                            {soldierById.get(a.soldierId)?.name ?? 'חייל'} · {roleLabels[a.role]}
-                          </span>
+                          <div className="flex items-center gap-1 min-w-0 flex-1">
+                            <span className="truncate">
+                              {soldierById.get(a.soldierId)?.name ?? 'חייל'} · {getRoleLabel(a.role)}
+                            </span>
+                            {(() => {
+                              const soldier = soldierById.get(a.soldierId);
+                              const platoon = soldier?.platoonId ? platoonById.get(soldier.platoonId) : null;
+                              if (platoon) {
+                                return (
+                                  <div
+                                    className="w-2 h-2 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: platoon.color }}
+                                    title={platoon.name}
+                                  />
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
                           {!!a.locked && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
                         </div>
                       ))}
@@ -258,9 +482,34 @@ export function ScheduleView() {
         )}
       </div>
 
-      <FairnessHistogram soldiers={soldiersList} tasks={tasksList} weekAssignments={weekAssignments} />
+      {platoons.length > 0 && (
+        <div className="space-y-6">
+          <PlatoonStatsCards
+            soldiers={soldiersList}
+            tasks={tasksList}
+            platoons={platoons}
+            weekAssignments={displayedAssignments}
+          />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <PlatoonFairnessChart
+              soldiers={soldiersList}
+              tasks={tasksList}
+              platoons={platoons}
+              weekAssignments={displayedAssignments}
+            />
+
+            <PlatoonTaskDistribution
+              soldiers={soldiersList}
+              tasks={tasksList}
+              platoons={platoons}
+              weekAssignments={displayedAssignments}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-card rounded-xl p-5 shadow-card">
           <h3 className="font-semibold mb-3">סטטיסטיקות שבועיות</h3>
           <div className="space-y-2 text-sm">
@@ -276,6 +525,49 @@ export function ScheduleView() {
               <span className="text-muted-foreground">נדרשים במוצב</span>
               <span className="font-medium">{requiredSoldiersInBase}</span>
             </div>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-xl p-5 shadow-card">
+          <h3 className="font-semibold mb-3">התפלגות לפי מחלקות</h3>
+          <div className="space-y-2">
+            {platoons.map((platoon) => {
+              const count = displayedAssignments.filter((a) => {
+                const soldier = soldierById.get(a.soldierId);
+                return soldier?.platoonId === platoon.id;
+              }).length;
+
+              return (
+                <div key={platoon.id} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: platoon.color }}
+                    />
+                    <span>{platoon.name}</span>
+                  </div>
+                  <span className="font-medium">{count} שיבוצים</span>
+                </div>
+              );
+            })}
+            {(() => {
+              const noneCount = displayedAssignments.filter((a) => {
+                const soldier = soldierById.get(a.soldierId);
+                return !soldier?.platoonId;
+              }).length;
+              if (noneCount > 0) {
+                return (
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-muted" />
+                      <span>ללא מחלקה</span>
+                    </div>
+                    <span className="font-medium">{noneCount} שיבוצים</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 

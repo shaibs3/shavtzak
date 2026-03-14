@@ -21,83 +21,172 @@ export async function seed(dataSource: DataSource) {
   console.log('Clearing existing data...');
 
   // Use query builder to delete all records (respects foreign keys)
-  await dataSource
-    .createQueryBuilder()
-    .delete()
-    .from(Assignment)
-    .execute();
+  await dataSource.createQueryBuilder().delete().from(Assignment).execute();
 
-  await dataSource
-    .createQueryBuilder()
-    .delete()
-    .from(Constraint)
-    .execute();
+  await dataSource.createQueryBuilder().delete().from(Constraint).execute();
 
-  await dataSource
-    .createQueryBuilder()
-    .delete()
-    .from(TaskRole)
-    .execute();
+  await dataSource.createQueryBuilder().delete().from(TaskRole).execute();
 
-  await dataSource
-    .createQueryBuilder()
-    .delete()
-    .from(Task)
-    .execute();
+  await dataSource.createQueryBuilder().delete().from(Task).execute();
 
-  await dataSource
-    .createQueryBuilder()
-    .delete()
-    .from(Soldier)
-    .execute();
+  await dataSource.createQueryBuilder().delete().from(Soldier).execute();
 
-  await dataSource
-    .createQueryBuilder()
-    .delete()
-    .from(Settings)
-    .execute();
+  await dataSource.createQueryBuilder().delete().from(Settings).execute();
 
   // Create 70 soldiers with constraints
   console.log('Creating 70 soldiers...');
 
   const firstNames = [
-    'יוסי', 'דני', 'מיכל', 'שרון', 'עומר', 'רון', 'תומר', 'אורי', 'עידו', 'נועם',
-    'יונתן', 'אביב', 'גיא', 'שחר', 'לירון', 'איתי', 'רועי', 'דור', 'עדי', 'נתנאל',
-    'אלעד', 'אלון', 'יניב', 'אסף', 'עמית', 'שי', 'טל', 'ליאור', 'אביגיל', 'נועה',
-    'שירה', 'מאיה', 'רותם', 'יעל', 'תמר', 'הדר', 'ענבר', 'שני', 'ליהי', 'מור',
-    'אדם', 'בן', 'דניאל', 'אייל', 'גל', 'יואב', 'עופר', 'צח', 'שמעון', 'אריאל',
-    'יהודה', 'משה', 'אברהם', 'יצחק', 'יעקב', 'דוד', 'שלמה', 'אליהו', 'אהרון', 'מרים',
-    'רחל', 'לאה', 'שרה', 'רבקה', 'דינה', 'חנה', 'רות', 'אסתר', 'יהושע', 'כלב'
+    'יוסי',
+    'דני',
+    'מיכל',
+    'שרון',
+    'עומר',
+    'רון',
+    'תומר',
+    'אורי',
+    'עידו',
+    'נועם',
+    'יונתן',
+    'אביב',
+    'גיא',
+    'שחר',
+    'לירון',
+    'איתי',
+    'רועי',
+    'דור',
+    'עדי',
+    'נתנאל',
+    'אלעד',
+    'אלון',
+    'יניב',
+    'אסף',
+    'עמית',
+    'שי',
+    'טל',
+    'ליאור',
+    'אביגיל',
+    'נועה',
+    'שירה',
+    'מאיה',
+    'רותם',
+    'יעל',
+    'תמר',
+    'הדר',
+    'ענבר',
+    'שני',
+    'ליהי',
+    'מור',
+    'אדם',
+    'בן',
+    'דניאל',
+    'אייל',
+    'גל',
+    'יואב',
+    'עופר',
+    'צח',
+    'שמעון',
+    'אריאל',
+    'יהודה',
+    'משה',
+    'אברהם',
+    'יצחק',
+    'יעקב',
+    'דוד',
+    'שלמה',
+    'אליהו',
+    'אהרון',
+    'מרים',
+    'רחל',
+    'לאה',
+    'שרה',
+    'רבקה',
+    'דינה',
+    'חנה',
+    'רות',
+    'אסתר',
+    'יהושע',
+    'כלב',
   ];
 
   const lastNames = [
-    'כהן', 'לוי', 'אברהם', 'מזרחי', 'דהן', 'ביטון', 'שמעון', 'פרץ', 'משה', 'חזן',
-    'אוחיון', 'בן דוד', 'יוסף', 'ברוך', 'ששון', 'מלכה', 'עזרא', 'חיים', 'אליהו', 'שלום',
-    'ישראל', 'אהרון', 'בוזגלו', 'עמר', 'אזולאי', 'אלון', 'בר', 'גולן', 'דגן', 'זהבי',
-    'חן', 'טל', 'יפה', 'כץ', 'לוין', 'מור', 'נחום', 'סער', 'עוז', 'פז'
+    'כהן',
+    'לוי',
+    'אברהם',
+    'מזרחי',
+    'דהן',
+    'ביטון',
+    'שמעון',
+    'פרץ',
+    'משה',
+    'חזן',
+    'אוחיון',
+    'בן דוד',
+    'יוסף',
+    'ברוך',
+    'ששון',
+    'מלכה',
+    'עזרא',
+    'חיים',
+    'אליהו',
+    'שלום',
+    'ישראל',
+    'אהרון',
+    'בוזגלו',
+    'עמר',
+    'אזולאי',
+    'אלון',
+    'בר',
+    'גולן',
+    'דגן',
+    'זהבי',
+    'חן',
+    'טל',
+    'יפה',
+    'כץ',
+    'לוין',
+    'מור',
+    'נחום',
+    'סער',
+    'עוז',
+    'פז',
   ];
 
-  const ranks = ['טוראי', 'רב טוראי', 'סמל', 'סמל ראשון', 'רס"ל', 'רס"ר', 'סגן', 'סרן'];
+  const ranks = [
+    'טוראי',
+    'רב טוראי',
+    'סמל',
+    'סמל ראשון',
+    'רס"ל',
+    'רס"ר',
+    'סגן',
+    'סרן',
+  ];
 
   const allRoles = [
-    ['soldier'],
-    ['soldier'],
-    ['soldier'],
-    ['driver', 'soldier'],
-    ['driver', 'soldier'],
-    ['radio_operator', 'soldier'],
-    ['radio_operator', 'soldier'],
-    ['commander', 'soldier'],
+    [], // No special roles - everyone is a soldier by default
+    [],
+    [],
+    ['driver'],
+    ['driver'],
+    ['commander'],
   ];
 
   const constraintTypes = ['vacation', 'unavailable', 'medical'];
-  const constraintReasons = ['חופשה', 'מילואים', 'מחלה', 'יציאה', 'אירוע משפחתי'];
+  const constraintReasons = [
+    'חופשה',
+    'מילואים',
+    'מחלה',
+    'יציאה',
+    'אירוע משפחתי',
+  ];
 
   const soldiers: Soldier[] = [];
 
   for (let i = 0; i < 70; i++) {
     const firstName = firstNames[i % firstNames.length];
-    const lastName = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
+    const lastName =
+      lastNames[Math.floor(i / firstNames.length) % lastNames.length];
     const rank = ranks[Math.floor(Math.random() * ranks.length)];
     const roles = allRoles[Math.floor(Math.random() * allRoles.length)];
     const maxVacationDays = Math.floor(Math.random() * 5) + 5; // 5-9 days
@@ -120,10 +209,15 @@ export async function seed(dataSource: DataSource) {
       constraintDate.setDate(constraintDate.getDate() + daysOffset);
 
       const constraint = constraintRepo.create({
-        type: constraintTypes[Math.floor(Math.random() * constraintTypes.length)],
+        type: constraintTypes[
+          Math.floor(Math.random() * constraintTypes.length)
+        ],
         startDate: constraintDate,
         endDate: constraintDate,
-        reason: constraintReasons[Math.floor(Math.random() * constraintReasons.length)],
+        reason:
+          constraintReasons[
+            Math.floor(Math.random() * constraintReasons.length)
+          ],
         soldier: soldier,
       });
       await constraintRepo.save(constraint);
@@ -153,12 +247,8 @@ export async function seed(dataSource: DataSource) {
   });
   await taskRoleRepo.save(morningCommander);
 
-  const morningSoldiers = taskRoleRepo.create({
-    role: 'soldier',
-    count: 2,
-    task: morningTask,
-  });
-  await taskRoleRepo.save(morningSoldiers);
+  // Note: No 'soldier' role needed - everyone is a soldier by default
+  // If you need generic soldiers, add them as a custom role or use other roles
 
   const eveningTask = taskRepo.create({
     name: 'משמרת ערב',
@@ -177,12 +267,7 @@ export async function seed(dataSource: DataSource) {
   });
   await taskRoleRepo.save(eveningDriver);
 
-  const eveningSoldiers = taskRoleRepo.create({
-    role: 'soldier',
-    count: 2,
-    task: eveningTask,
-  });
-  await taskRoleRepo.save(eveningSoldiers);
+  // Note: No 'soldier' role needed - everyone is a soldier by default
 
   console.log(`Created ${await taskRepo.count()} tasks`);
   console.log(`Created ${await taskRoleRepo.count()} task roles`);
@@ -193,6 +278,8 @@ export async function seed(dataSource: DataSource) {
   const settings = settingsRepo.create({
     minBasePresence: 75,
     totalSoldiers: 70,
+    operationalStartDate: new Date('2026-02-01'),
+    operationalEndDate: new Date('2026-05-31'),
   });
   await settingsRepo.save(settings);
 

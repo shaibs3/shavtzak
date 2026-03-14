@@ -1,4 +1,14 @@
-import { IsString, IsInt, Min, Max, IsBoolean, IsOptional, IsArray, ArrayMinSize, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsInt,
+  Min,
+  Max,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  ArrayMinSize,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { TaskRoleDto } from './task-role.dto';

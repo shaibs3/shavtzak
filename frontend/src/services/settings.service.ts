@@ -1,9 +1,9 @@
 import { apiClient } from './api';
-import type { ScheduleSettings, UpdateSettingsDto } from '@/types/scheduling';
+import type { Settings, UpdateSettingsDto } from '@/types/scheduling';
 
 export const settingsService = {
-  get: () => apiClient.get<ScheduleSettings>('/settings'),
+  get: () => apiClient.get<Settings>('/settings'),
 
   update: (data: UpdateSettingsDto) =>
-    apiClient.patch<ScheduleSettings>('/settings', data),
+    apiClient.patch<Settings>('/settings', data),
 };

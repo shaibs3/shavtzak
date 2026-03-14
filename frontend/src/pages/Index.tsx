@@ -5,6 +5,7 @@ import { SoldiersView } from '@/components/soldiers/SoldiersView';
 import { TasksView } from '@/components/tasks/TasksView';
 import { ScheduleView } from '@/components/schedule/ScheduleView';
 import { SettingsView } from '@/components/settings/SettingsView';
+import { UsersView } from '@/components/users/UsersView';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -21,6 +22,8 @@ const Index = () => {
         return <ScheduleView />;
       case 'settings':
         return <SettingsView />;
+      case 'users':
+        return <UsersView />;
       default:
         return <Dashboard />;
     }

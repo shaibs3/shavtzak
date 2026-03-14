@@ -6,6 +6,8 @@ export interface Soldier {
   constraints: Constraint[];
   maxVacationDays: number;
   usedVacationDays: number;
+  platoonId: string | null;
+  platoon?: Platoon;
 }
 
 export interface Constraint {
@@ -16,14 +18,33 @@ export interface Constraint {
   reason?: string;
 }
 
-export type Role = 'commander' | 'driver' | 'radio_operator' | 'soldier';
+export type Role = string;
 
-export const roleLabels: Record<Role, string> = {
+// Default roles (always available)
+// 'soldier' = any soldier (no special role required)
+export const DEFAULT_ROLES: Role[] = ['soldier', 'commander', 'driver'];
+
+// Default role labels
+export const DEFAULT_ROLE_LABELS: Record<string, string> = {
+  soldier: 'חייל',
   commander: 'מפקד',
   driver: 'נהג',
-  radio_operator: 'פקל',
-  soldier: 'חייל',
 };
+
+// Helper function to get role label (supports custom roles)
+export function getRoleLabel(role: Role, customRoleLabels?: Record<string, string>): string {
+  if (customRoleLabels && customRoleLabels[role]) {
+    return customRoleLabels[role];
+  }
+  return DEFAULT_ROLE_LABELS[role] || role;
+}
+
+// Helper function to get all available roles (default + custom)
+// Filters out duplicates (in case a custom role matches a default role)
+export function getAllRoles(customRoles: string[] = []): Role[] {
+  const filteredCustomRoles = customRoles.filter(role => !DEFAULT_ROLES.includes(role));
+  return [...DEFAULT_ROLES, ...filteredCustomRoles];
+}
 
 export interface Task {
   id: string;
@@ -58,8 +79,32 @@ export interface ScheduleSettings {
   totalSoldiers: number;
 }
 
+export interface Settings {
+  id: string;
+  minBasePresence: number;
+  totalSoldiers: number;
+  operationalStartDate: string | null;
+  operationalEndDate: string | null;
+  customRoles: string[] | null;
+  updatedAt: string;
+}
+
+export interface Platoon {
+  id: string;
+  name: string;
+  commander: string | null;
+  color: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  soldiers?: Soldier[];
+}
+
+export type CreatePlatoonDto = Omit<Platoon, 'id' | 'color' | 'createdAt' | 'updatedAt' | 'soldiers'>;
+export type UpdatePlatoonDto = Partial<CreatePlatoonDto>;
+
 // DTOs for API requests
-export type CreateSoldierDto = Omit<Soldier, 'id' | 'constraints'>;
+export type CreateSoldierDto = Omit<Soldier, 'id' | 'constraints' | 'platoon'>;
 export type UpdateSoldierDto = Partial<CreateSoldierDto>;
 
 export type CreateConstraintDto = Omit<Constraint, 'id'>;
@@ -70,4 +115,4 @@ export type UpdateTaskDto = Partial<CreateTaskDto>;
 export type CreateAssignmentDto = Omit<Assignment, 'id'>;
 export type UpdateAssignmentDto = Partial<CreateAssignmentDto>;
 
-export type UpdateSettingsDto = Partial<ScheduleSettings>;
+export type UpdateSettingsDto = Partial<Omit<Settings, 'id' | 'updatedAt'>>;

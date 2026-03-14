@@ -9,11 +9,27 @@ export const apiClient = axios.create({
   },
 });
 
+// Add auth token to requests
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error.response?.data?.message || 'אירעה שגיאה';
+    // Handle 401 - redirect to login
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token');
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+
+    const message = error.response?.data?.message || 'שגיאה בתקשורת עם השרת';
     toast({
       variant: 'destructive',
       title: 'שגיאה',

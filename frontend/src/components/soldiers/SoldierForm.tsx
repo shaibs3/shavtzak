@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Role, roleLabels, Soldier } from '@/types/scheduling';
+import { Role, getRoleLabel, getAllRoles, Soldier } from '@/types/scheduling';
 import { X } from 'lucide-react';
+import { usePlatoons } from '@/hooks/usePlatoons';
+import { useSettings } from '@/hooks/useSettings';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface SoldierFormProps {
   soldier?: Soldier;
@@ -12,33 +21,57 @@ interface SoldierFormProps {
   onCancel: () => void;
 }
 
-const allRoles: Role[] = ['commander', 'driver', 'radio_operator', 'soldier'];
-
 export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
+  const { data: platoons = [] } = usePlatoons();
+  const { data: settings } = useSettings();
+  const allRoles = useMemo(() => {
+    if (!settings) {
+      return getAllRoles([]);
+    }
+    const customRoles = settings.customRoles;
+    const rolesArray = customRoles === null || customRoles === undefined 
+      ? [] 
+      : (Array.isArray(customRoles) ? customRoles : []);
+    return getAllRoles(rolesArray);
+  }, [settings]);
+  
   const [name, setName] = useState(soldier?.name || '');
   const [rank, setRank] = useState(soldier?.rank || '');
-  const [roles, setRoles] = useState<Role[]>(soldier?.roles || ['soldier']);
+  // Filter out 'soldier' role - it's implicit for everyone
+  const initialRoles = soldier?.roles?.filter(r => r !== 'soldier') || [];
+  const [roles, setRoles] = useState<Role[]>(initialRoles);
   const [maxVacationDays, setMaxVacationDays] = useState(soldier?.maxVacationDays || 5);
   const [usedVacationDays, setUsedVacationDays] = useState(soldier?.usedVacationDays || 0);
+  const [platoonId, setPlatoonId] = useState<string | null>(
+    soldier?.platoonId || null
+  );
 
   const handleRoleToggle = (role: Role) => {
-    setRoles(prev =>
-      prev.includes(role)
-        ? prev.filter(r => r !== role)
-        : [...prev, role]
-    );
+    setRoles(prev => {
+      if (prev.includes(role)) {
+        // מסירים תפקיד
+        return prev.filter(r => r !== role);
+      } else {
+        // מוסיפים תפקיד
+        return [...prev, role];
+      }
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !rank.trim() || roles.length === 0) return;
-    
+    if (!name.trim() || !rank.trim()) return;
+
+    // Filter out 'soldier' role before submitting - it's implicit
+    const rolesToSubmit = roles.filter(r => r !== 'soldier');
+
     onSubmit({
       name: name.trim(),
       rank: rank.trim(),
-      roles,
+      roles: rolesToSubmit,
       maxVacationDays,
       usedVacationDays,
+      platoonId,
     });
   };
 
@@ -89,7 +122,7 @@ export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
                     checked={roles.includes(role)}
                     onCheckedChange={() => handleRoleToggle(role)}
                   />
-                  <span className="text-sm">{roleLabels[role]}</span>
+                  <span className="text-sm">{getRoleLabel(role)}</span>
                 </label>
               ))}
             </div>
@@ -119,6 +152,32 @@ export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
                 className="mt-1.5"
               />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="platoon">מחלקה</Label>
+            <Select
+              value={platoonId || 'none'}
+              onValueChange={(v) => setPlatoonId(v === 'none' ? null : v)}
+            >
+              <SelectTrigger id="platoon" className="mt-1.5">
+                <SelectValue placeholder="בחר מחלקה" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">ללא מחלקה</SelectItem>
+                {platoons.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: p.color }}
+                      />
+                      <span>{p.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex gap-3 pt-4">

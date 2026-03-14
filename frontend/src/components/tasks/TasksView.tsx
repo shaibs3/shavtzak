@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
-import { roleLabels, Task } from '@/types/scheduling';
+import { getRoleLabel, Task } from '@/types/scheduling';
 import { TaskForm } from './TaskForm';
+import { useAuth } from '@/hooks/useAuth';
 
 export function TasksView() {
+  const { isAdmin } = useAuth();
   const { data: tasks, isLoading, error, refetch } = useTasks();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
@@ -62,10 +64,12 @@ export function TasksView() {
           <h2 className="text-2xl font-bold text-foreground">ניהול משימות</h2>
           <p className="text-muted-foreground mt-1">הגדר משימות, תפקידים ומשמרות</p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          הוסף משימה
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setShowForm(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            הוסף משימה
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -75,6 +79,7 @@ export function TasksView() {
             className={`bg-card rounded-xl p-5 shadow-card transition-all ${
               !task.isActive ? 'opacity-60' : ''
             }`}
+            dir="rtl"
           >
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -83,10 +88,12 @@ export function TasksView() {
                   <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
                 )}
               </div>
-              <Switch
-                checked={task.isActive}
-                onCheckedChange={() => handleToggleActive(task)}
-              />
+              {isAdmin && (
+                <Switch
+                  checked={task.isActive}
+                  onCheckedChange={() => handleToggleActive(task)}
+                />
+              )}
             </div>
 
             <div className="space-y-3 mb-4">
@@ -110,34 +117,36 @@ export function TasksView() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-1 mb-4">
+            <div className="flex flex-wrap gap-1 mb-4 w-full justify-end">
               {task.requiredRoles.map((role, idx) => (
                 <Badge key={idx} variant="outline" className="text-xs">
-                  {role.count} {roleLabels[role.role]}
+                  {role.count} {getRoleLabel(role.role)}
                 </Badge>
               ))}
             </div>
 
-            <div className="flex gap-2 pt-3 border-t border-border">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleEdit(task)}
-                className="flex-1 gap-1"
-              >
-                <Edit2 className="w-4 h-4" />
-                עריכה
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(task.id)}
-                className="text-destructive hover:text-destructive gap-1"
-              >
-                <Trash2 className="w-4 h-4" />
-                מחיקה
-              </Button>
-            </div>
+            {isAdmin && (
+              <div className="flex gap-2 pt-3 border-t border-border">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(task)}
+                  className="flex-1 gap-1"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  עריכה
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(task.id)}
+                  className="text-destructive hover:text-destructive gap-1"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  מחיקה
+                </Button>
+              </div>
+            )}
           </div>
         ))}
       </div>

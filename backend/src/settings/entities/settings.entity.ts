@@ -1,4 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('settings')
 export class Settings {
@@ -10,6 +15,15 @@ export class Settings {
 
   @Column({ type: 'int' })
   totalSoldiers: number;
+
+  @Column({ type: 'date', nullable: true })
+  operationalStartDate: Date | null;
+
+  @Column({ type: 'date', nullable: true })
+  operationalEndDate: Date | null;
+
+  @Column('simple-array', { nullable: true, default: null })
+  customRoles: string[] | null;
 
   @UpdateDateColumn()
   updatedAt: Date;

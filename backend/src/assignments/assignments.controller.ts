@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AssignmentsService } from './assignments.service';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('assignments')
 @Controller('assignments')
@@ -20,6 +21,7 @@ export class AssignmentsController {
   constructor(private readonly assignmentsService: AssignmentsService) {}
 
   @Post()
+  @Roles('admin')
   @ApiOperation({ summary: 'Create a new assignment' })
   @ApiResponse({ status: 201, description: 'Assignment created successfully' })
   create(@Body() createAssignmentDto: CreateAssignmentDto) {
@@ -42,14 +44,19 @@ export class AssignmentsController {
   }
 
   @Patch(':id')
+  @Roles('admin')
   @ApiOperation({ summary: 'Update assignment' })
   @ApiResponse({ status: 200, description: 'Assignment updated successfully' })
   @ApiResponse({ status: 404, description: 'Assignment not found' })
-  update(@Param('id') id: string, @Body() updateAssignmentDto: UpdateAssignmentDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateAssignmentDto: UpdateAssignmentDto,
+  ) {
     return this.assignmentsService.update(id, updateAssignmentDto);
   }
 
   @Delete(':id')
+  @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete assignment' })
   @ApiResponse({ status: 204, description: 'Assignment deleted successfully' })

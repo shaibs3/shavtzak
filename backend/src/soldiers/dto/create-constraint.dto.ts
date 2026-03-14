@@ -2,7 +2,10 @@ import { IsString, IsDateString, IsOptional, IsIn } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateConstraintDto {
-  @ApiProperty({ example: 'vacation', enum: ['unavailable', 'vacation', 'medical', 'other'] })
+  @ApiProperty({
+    example: 'vacation',
+    enum: ['unavailable', 'vacation', 'medical', 'other'],
+  })
   @IsString()
   @IsIn(['unavailable', 'vacation', 'medical', 'other'])
   type: string;

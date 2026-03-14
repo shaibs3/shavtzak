@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import type { Assignment, Role, Soldier, Task } from '@/types/scheduling';
-import { roleLabels } from '@/types/scheduling';
+import { getRoleLabel } from '@/types/scheduling';
+import { useSettings } from '@/hooks/useSettings';
 
 type Slot = { role: Role; soldierId: string | null };
 
@@ -53,13 +54,28 @@ export function AssignDialog({
     setSlots(buildSlots(task, existingAssignments));
   }, [defaultLocked, existingAssignments, task]);
 
+  const { data: settings } = useSettings();
+  const allRoles = useMemo(() => {
+    const roles = new Set<Role>();
+    // Add roles from soldiers
+    soldiers.forEach(s => s.roles.forEach(r => roles.add(r)));
+    // Add roles from task requirements (in case task requires 'soldier' but no soldiers have it)
+    task.requiredRoles.forEach(tr => roles.add(tr.role));
+    return Array.from(roles);
+  }, [soldiers, task.requiredRoles]);
+
   const candidatesByRole = useMemo(() => {
     const map = new Map<Role, Soldier[]>();
-    for (const r of ['commander', 'driver', 'radio_operator', 'soldier'] as Role[]) {
-      map.set(r, soldiers.filter((s) => s.roles.includes(r)));
-    }
+    allRoles.forEach(r => {
+      // If role is 'soldier', everyone can fill it (everyone is a soldier by default)
+      if (r === 'soldier') {
+        map.set(r, soldiers);
+      } else {
+        map.set(r, soldiers.filter((s) => s.roles.includes(r)));
+      }
+    });
     return map;
-  }, [soldiers]);
+  }, [soldiers, allRoles]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,7 +96,7 @@ export function AssignDialog({
           <div className="space-y-3">
             {slots.map((slot, idx) => (
               <div key={idx} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
-                <div className="text-sm font-medium">{roleLabels[slot.role]}</div>
+                <div className="text-sm font-medium">{getRoleLabel(slot.role)}</div>
                 <div className="sm:col-span-2">
                   <Select
                     value={slot.soldierId ?? ''}
