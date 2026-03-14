@@ -1,4 +1,4 @@
-import { Users, ClipboardList, Calendar, Settings, LayoutDashboard, LogOut, UserCog } from 'lucide-react';
+import { Users, ClipboardList, Calendar, Settings, LayoutDashboard, LogOut, UserCog, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ const baseNavItems = [
   { id: 'soldiers', label: 'חיילים', icon: Users },
   { id: 'tasks', label: 'משימות', icon: ClipboardList },
   { id: 'schedule', label: 'שיבוצים', icon: Calendar },
+  { id: 'analytics', label: 'אנליטיקות', icon: BarChart3 },
   { id: 'settings', label: 'הגדרות', icon: Settings },
 ];
 

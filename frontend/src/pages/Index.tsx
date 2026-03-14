@@ -4,6 +4,7 @@ import { Dashboard } from '@/components/dashboard/Dashboard';
 import { SoldiersView } from '@/components/soldiers/SoldiersView';
 import { TasksView } from '@/components/tasks/TasksView';
 import { ScheduleView } from '@/components/schedule/ScheduleView';
+import { AnalyticsView } from '@/components/analytics/AnalyticsView';
 import { SettingsView } from '@/components/settings/SettingsView';
 import { UsersView } from '@/components/users/UsersView';
 
@@ -20,6 +21,8 @@ const Index = () => {
         return <TasksView />;
       case 'schedule':
         return <ScheduleView />;
+      case 'analytics':
+        return <AnalyticsView />;
       case 'settings':
         return <SettingsView />;
       case 'users':
