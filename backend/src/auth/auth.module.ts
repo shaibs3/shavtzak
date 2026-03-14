@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import type { SignOptions } from 'jsonwebtoken';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { GoogleStrategy } from './strategies/google.strategy';
@@ -19,7 +20,7 @@ import { UsersModule } from '../users/users.module';
         return {
           secret: configService.get<string>('JWT_SECRET'),
           signOptions: {
-            expiresIn: expiresIn as any,
+            expiresIn: expiresIn as SignOptions['expiresIn'],
           },
         };
       },

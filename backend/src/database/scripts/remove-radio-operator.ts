@@ -123,4 +123,4 @@ async function removeRadioOperator() {
   }
 }
 
-removeRadioOperator();
+void removeRadioOperator();

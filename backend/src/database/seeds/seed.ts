@@ -15,7 +15,8 @@ export async function seed(dataSource: DataSource) {
   const taskRepo = dataSource.getRepository(Task);
   const taskRoleRepo = dataSource.getRepository(TaskRole);
   const settingsRepo = dataSource.getRepository(Settings);
-  const assignmentRepo = dataSource.getRepository(Assignment);
+  // assignmentRepo used for deletion only
+  void dataSource.getRepository(Assignment);
 
   // Clear existing data (in reverse FK order)
   console.log('Clearing existing data...');

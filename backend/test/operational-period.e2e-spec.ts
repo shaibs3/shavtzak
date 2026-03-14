@@ -1,7 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
+import type { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+
+interface SettingsResponse {
+  operationalStartDate: string;
+  operationalEndDate: string;
+}
 
 describe('Operational Period (e2e)', () => {
   let app: INestApplication;
@@ -31,21 +37,22 @@ describe('Operational Period (e2e)', () => {
   });
 
   it('/api/settings (PATCH) - should set operational period', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as App)
       .patch('/api/settings')
       .send({
         operationalStartDate: '2026-02-01',
         operationalEndDate: '2026-05-31',
       })
       .expect(200)
-      .expect((res) => {
-        expect(res.body.operationalStartDate).toBe('2026-02-01');
-        expect(res.body.operationalEndDate).toBe('2026-05-31');
+      .expect((res: request.Response) => {
+        const body = res.body as SettingsResponse;
+        expect(body.operationalStartDate).toBe('2026-02-01');
+        expect(body.operationalEndDate).toBe('2026-05-31');
       });
   });
 
   it('/api/settings (PATCH) - should reject invalid operational period', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as App)
       .patch('/api/settings')
       .send({
         operationalStartDate: '2026-05-31',
@@ -55,7 +62,7 @@ describe('Operational Period (e2e)', () => {
   });
 
   it('/api/settings (PATCH) - should reject partial operational period', () => {
-    return request(app.getHttpServer())
+    return request(app.getHttpServer() as App)
       .patch('/api/settings')
       .send({
         operationalStartDate: '2026-02-01',

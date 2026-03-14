@@ -2,12 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SettingsService } from './settings.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Settings } from './entities/settings.entity';
-import { Repository } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 
 describe('SettingsService', () => {
   let service: SettingsService;
-  let repository: Repository<Settings>;
 
   const mockRepository = {
     find: jest.fn(),
@@ -28,7 +26,6 @@ describe('SettingsService', () => {
     }).compile();
 
     service = module.get<SettingsService>(SettingsService);
-    repository = module.get<Repository<Settings>>(getRepositoryToken(Settings));
 
     // Reset all mocks before each test
     jest.clearAllMocks();

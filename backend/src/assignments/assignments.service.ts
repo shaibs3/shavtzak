@@ -110,7 +110,7 @@ export class AssignmentsService {
     // Check if assignment is completely within operational period
     if (assignmentStart < operationalStart || assignmentEnd > operationalEnd) {
       throw new BadRequestException(
-        `Assignment must be within the operational period (${settings.operationalStartDate} to ${settings.operationalEndDate})`,
+        `Assignment must be within the operational period (${operationalStart.toISOString().split('T')[0]} to ${operationalEnd.toISOString().split('T')[0]})`,
       );
     }
   }

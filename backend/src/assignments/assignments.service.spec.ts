@@ -1,14 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
 import { AssignmentsService } from './assignments.service';
 import { Assignment } from './entities/assignment.entity';
 import { SettingsService } from '../settings/settings.service';
 
 describe('AssignmentsService - Operational Period Filtering', () => {
   let service: AssignmentsService;
-  let repository: Repository<Assignment>;
-  let settingsService: SettingsService;
 
   const mockQueryBuilder = {
     andWhere: jest.fn().mockReturnThis(),
@@ -45,10 +42,6 @@ describe('AssignmentsService - Operational Period Filtering', () => {
     }).compile();
 
     service = module.get<AssignmentsService>(AssignmentsService);
-    repository = module.get<Repository<Assignment>>(
-      getRepositoryToken(Assignment),
-    );
-    settingsService = module.get<SettingsService>(SettingsService);
 
     jest.clearAllMocks();
   });

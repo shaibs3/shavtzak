@@ -75,4 +75,4 @@ async function removeSoldierRole() {
   }
 }
 
-removeSoldierRole();
+void removeSoldierRole();

@@ -9,12 +9,13 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { GoogleProfile } from './strategies/google.strategy';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -36,7 +37,10 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google OAuth callback' })
-  async googleAuthCallback(@Req() req, @Res() res: Response) {
+  async googleAuthCallback(
+    @Req() req: Request & { user: GoogleProfile },
+    @Res() res: Response,
+  ) {
     const user = await this.authService.validateGoogleUser(req.user);
     const token = this.authService.generateJwt(user);
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
 import { PlatoonsService } from './platoons.service';
 import { Platoon } from './entities/platoon.entity';
 import { Soldier } from '../soldiers/entities/soldier.entity';
@@ -45,32 +45,36 @@ describe('PlatoonsService', () => {
   describe('create', () => {
     it('should create platoon with auto-assigned color', async () => {
       const createDto = { name: "מחלקה א'", commander: 'רס״ן כהן' };
-      jest.spyOn(platoonRepo, 'find').mockResolvedValue([]);
+      const findSpy = jest.spyOn(platoonRepo, 'find').mockResolvedValue([]);
       jest
         .spyOn(platoonRepo, 'create')
-        .mockReturnValue({ ...createDto, color: '#3B82F6' } as any);
-      jest
-        .spyOn(platoonRepo, 'save')
-        .mockResolvedValue({ id: '1', ...createDto, color: '#3B82F6' } as any);
+        .mockReturnValue({ ...createDto, color: '#3B82F6' } as Platoon);
+      jest.spyOn(platoonRepo, 'save').mockResolvedValue({
+        id: '1',
+        ...createDto,
+        color: '#3B82F6',
+      } as Platoon);
 
       const result = await service.create(createDto);
 
       expect(result.color).toBe('#3B82F6');
-      expect(platoonRepo.find).toHaveBeenCalled();
+      expect(findSpy).toHaveBeenCalled();
     });
 
     it('should cycle colors after 10 platoons', async () => {
       const createDto = { name: 'מחלקה יא' };
       const mockPlatoons = Array(10)
         .fill(null)
-        .map((_, i) => ({ id: `${i + 1}` }));
-      jest.spyOn(platoonRepo, 'find').mockResolvedValue(mockPlatoons as any);
+        .map((_, i) => ({ id: `${i + 1}` })) as Platoon[];
+      jest.spyOn(platoonRepo, 'find').mockResolvedValue(mockPlatoons);
       jest
         .spyOn(platoonRepo, 'create')
-        .mockReturnValue({ ...createDto, color: '#3B82F6' } as any);
-      jest
-        .spyOn(platoonRepo, 'save')
-        .mockResolvedValue({ id: '11', ...createDto, color: '#3B82F6' } as any);
+        .mockReturnValue({ ...createDto, color: '#3B82F6' } as Platoon);
+      jest.spyOn(platoonRepo, 'save').mockResolvedValue({
+        id: '11',
+        ...createDto,
+        color: '#3B82F6',
+      } as Platoon);
 
       const result = await service.create(createDto);
 
@@ -83,42 +87,44 @@ describe('PlatoonsService', () => {
       const platoon = {
         id: '1',
         name: "מחלקה א'",
-        soldiers: [{ id: 's1' }] as any,
-      };
-      jest.spyOn(platoonRepo, 'findOne').mockResolvedValue(platoon as any);
+        soldiers: [{ id: 's1' }] as Soldier[],
+      } as Platoon;
+      jest.spyOn(platoonRepo, 'findOne').mockResolvedValue(platoon);
 
       await expect(service.remove('1')).rejects.toThrow(ConflictException);
     });
 
     it('should delete platoon if no soldiers', async () => {
-      const platoon = { id: '1', name: "מחלקה א'", soldiers: [] };
-      jest.spyOn(platoonRepo, 'findOne').mockResolvedValue(platoon as any);
-      jest.spyOn(platoonRepo, 'remove').mockResolvedValue(platoon as any);
+      const platoon = { id: '1', name: "מחלקה א'", soldiers: [] } as Platoon;
+      jest.spyOn(platoonRepo, 'findOne').mockResolvedValue(platoon);
+      const removeSpy = jest
+        .spyOn(platoonRepo, 'remove')
+        .mockResolvedValue(platoon);
 
       await service.remove('1');
 
-      expect(platoonRepo.remove).toHaveBeenCalledWith(platoon);
+      expect(removeSpy).toHaveBeenCalledWith(platoon);
     });
   });
 
   describe('autoAssign', () => {
     it('should distribute soldiers round-robin', async () => {
-      const platoons = [
-        { id: 'p1', name: "מחלקה א'" },
-        { id: 'p2', name: "מחלקה ב'" },
+      const platoons: Platoon[] = [
+        { id: 'p1', name: "מחלקה א'" } as Platoon,
+        { id: 'p2', name: "מחלקה ב'" } as Platoon,
       ];
-      const soldiers = [
-        { id: 's1', platoonId: null },
-        { id: 's2', platoonId: null },
-        { id: 's3', platoonId: null },
-      ] as any[];
+      const soldiers: Soldier[] = [
+        { id: 's1', platoonId: null } as Soldier,
+        { id: 's2', platoonId: null } as Soldier,
+        { id: 's3', platoonId: null } as Soldier,
+      ];
 
       jest
         .spyOn(service, 'findOne')
-        .mockResolvedValueOnce(platoons[0] as any)
-        .mockResolvedValueOnce(platoons[1] as any);
+        .mockResolvedValueOnce(platoons[0])
+        .mockResolvedValueOnce(platoons[1]);
       jest.spyOn(soldierRepo, 'find').mockResolvedValue(soldiers);
-      jest.spyOn(soldierRepo, 'save').mockResolvedValue(soldiers as any);
+      jest.spyOn(soldierRepo, 'save').mockResolvedValue(soldiers);
 
       const result = await service.autoAssign(['p1', 'p2']);
 
@@ -129,13 +135,14 @@ describe('PlatoonsService', () => {
     });
 
     it('should return 0 if no soldiers without platoon', async () => {
-      jest.spyOn(service, 'findOne').mockResolvedValue({ id: 'p1' } as any);
+      jest.spyOn(service, 'findOne').mockResolvedValue({ id: 'p1' } as Platoon);
       jest.spyOn(soldierRepo, 'find').mockResolvedValue([]);
+      const saveSpy = jest.spyOn(soldierRepo, 'save');
 
       const result = await service.autoAssign(['p1']);
 
       expect(result.assignedCount).toBe(0);
-      expect(soldierRepo.save).not.toHaveBeenCalled();
+      expect(saveSpy).not.toHaveBeenCalled();
     });
   });
 });
