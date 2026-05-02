@@ -100,7 +100,7 @@ test.describe('Simulation: Commander Workflows', () => {
     });
 
     // Navigate to analytics tab
-    await page.click('button:has-text("אנליטיקה")');
+    await page.click('button:has-text("אנליטיקות")');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
