@@ -97,7 +97,7 @@ function runFullPeriodSimulation(
         id: `soldier-${soldierIndex + 1}`,
         name: `חייל ${soldierIndex + 1}`,
         platoonId: platoons[p].id,
-        roles: roles as any,
+        roles,
       }));
       soldierIndex++;
     }
@@ -110,7 +110,7 @@ function runFullPeriodSimulation(
     shiftStartHour: t.shiftStartHour,
     shiftDuration: t.shiftDuration,
     restTimeBetweenShifts: t.restTimeBetweenShifts,
-    requiredRoles: t.requiredRoles as any,
+    requiredRoles: t.requiredRoles,
   }));
 
   // Run simulation

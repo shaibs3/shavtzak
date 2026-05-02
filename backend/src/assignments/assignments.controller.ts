@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AssignmentsService } from './assignments.service';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
+import { BatchCreateAssignmentsDto } from './dto/batch-create-assignments.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('assignments')
@@ -26,6 +27,14 @@ export class AssignmentsController {
   @ApiResponse({ status: 201, description: 'Assignment created successfully' })
   create(@Body() createAssignmentDto: CreateAssignmentDto) {
     return this.assignmentsService.create(createAssignmentDto);
+  }
+
+  @Post('batch')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Batch create assignments' })
+  @ApiResponse({ status: 201, description: 'Assignments created successfully' })
+  batchCreate(@Body() batchDto: BatchCreateAssignmentsDto) {
+    return this.assignmentsService.batchCreate(batchDto);
   }
 
   @Get()

@@ -132,18 +132,19 @@ Tests in `frontend/src/lib/scheduling/__tests__/` (48 tests covering correctness
 ## Pre-Push Checklist
 
 **IMPORTANT**: Run all CI checks locally before pushing to verify everything passes.
+**MANDATORY**: Before creating a pull request, you MUST run linting for both frontend and backend and fix all errors. CI will reject PRs with lint errors. Do not create a PR until `npm run lint` returns 0 errors in both frontend and backend.
 
 ```bash
 # Backend checks
 cd backend
-npm run lint                    # ESLint
+npm run lint                    # ESLint — MUST pass with 0 errors
 npm run format                  # Prettier
 npm run build                   # TypeScript compilation
 npm run test                    # Unit tests
 
 # Frontend checks
 cd frontend
-npm run lint                    # ESLint
+npm run lint                    # ESLint — MUST pass with 0 errors
 npm run build                   # Vite build
 npm run test                    # Vitest unit tests
 

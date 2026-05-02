@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { Assignment } from './entities/assignment.entity';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
+import { BatchCreateAssignmentsDto } from './dto/batch-create-assignments.dto';
 import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
@@ -81,6 +82,28 @@ export class AssignmentsService {
 
     await this.assignmentsRepository.update(id, updateAssignmentDto);
     return this.findOne(id);
+  }
+
+  async batchCreate(dto: BatchCreateAssignmentsDto): Promise<Assignment[]> {
+    if (dto.replaceNonLocked && dto.assignments.length > 0) {
+      const starts = dto.assignments.map((a) => new Date(a.startTime));
+      const ends = dto.assignments.map((a) => new Date(a.endTime));
+      const minDate = new Date(Math.min(...starts.map((d) => d.getTime())));
+      const maxDate = new Date(Math.max(...ends.map((d) => d.getTime())));
+
+      await this.assignmentsRepository
+        .createQueryBuilder()
+        .delete()
+        .where('locked = :locked', { locked: false })
+        .andWhere('startTime >= :minDate', { minDate })
+        .andWhere('endTime <= :maxDate', { maxDate })
+        .execute();
+    }
+
+    const entities = dto.assignments.map((a) =>
+      this.assignmentsRepository.create(a),
+    );
+    return this.assignmentsRepository.save(entities);
   }
 
   async remove(id: string): Promise<void> {
