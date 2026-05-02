@@ -26,13 +26,14 @@ export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
   const { data: settings } = useSettings();
   const allRoles = useMemo(() => {
     if (!settings) {
-      return getAllRoles([]);
+      return getAllRoles([]).filter(r => r !== 'soldier');
     }
     const customRoles = settings.customRoles;
-    const rolesArray = customRoles === null || customRoles === undefined 
-      ? [] 
+    const rolesArray = customRoles === null || customRoles === undefined
+      ? []
       : (Array.isArray(customRoles) ? customRoles : []);
-    return getAllRoles(rolesArray);
+    // Filter out 'soldier' — every soldier has this role implicitly
+    return getAllRoles(rolesArray).filter(r => r !== 'soldier');
   }, [settings]);
   
   const [name, setName] = useState(soldier?.name || '');
