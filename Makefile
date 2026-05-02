@@ -1,4 +1,4 @@
-.PHONY: help install db-up db-down db-reset seed backend frontend dev stop test test-e2e clean logs
+.PHONY: help install db-up db-down db-reset seed seed-stress backend frontend dev stop test test-e2e clean logs
 
 # Default target - show help
 help:
@@ -74,6 +74,12 @@ seed:
 	@echo "🌱 Seeding database..."
 	@cd backend && npm run seed
 	@echo "✅ Database seeded with 70 soldiers and 3 tasks"
+
+# Seed database with stress scenario data
+seed-stress:
+	@echo "Seeding database with stress scenario..."
+	@cd backend && npm run seed:stress
+	@echo "Stress scenario seeded"
 
 # Start backend only
 backend:
