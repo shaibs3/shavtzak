@@ -63,8 +63,8 @@ export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
     e.preventDefault();
     if (!name.trim() || !rank.trim()) return;
 
-    // Filter out 'soldier' role before submitting - it's implicit
-    const rolesToSubmit = roles.filter(r => r !== 'soldier');
+    // Always include 'soldier' role - it's implicit but backend requires at least one role
+    const rolesToSubmit = ['soldier', ...roles.filter(r => r !== 'soldier')];
 
     onSubmit({
       name: name.trim(),
