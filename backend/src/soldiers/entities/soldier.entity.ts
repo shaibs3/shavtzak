@@ -19,7 +19,7 @@ export class Soldier {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ nullable: true })
   rank: string;
 
   @Column('simple-array')

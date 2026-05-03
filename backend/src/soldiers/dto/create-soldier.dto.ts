@@ -15,9 +15,10 @@ export class CreateSoldierDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ example: 'סמל' })
+  @ApiProperty({ example: 'סמל', required: false })
   @IsString()
-  rank: string;
+  @IsOptional()
+  rank?: string;
 
   @ApiProperty({ example: ['driver', 'soldier'] })
   @IsArray()

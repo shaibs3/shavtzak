@@ -61,7 +61,7 @@ export function SoldierForm({ soldier, onSubmit, onCancel }: SoldierFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !rank.trim()) return;
+    if (!name.trim()) return;
 
     // Always include 'soldier' role - it's implicit but backend requires at least one role
     const rolesToSubmit = ['soldier', ...roles.filter(r => r !== 'soldier')];
